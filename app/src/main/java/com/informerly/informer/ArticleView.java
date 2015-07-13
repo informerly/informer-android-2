@@ -30,14 +30,17 @@ import com.informerly.informer.R;
 
 public class ArticleView extends ActionBarActivity {
     String url = "http://fortune.com/ikea-world-domination/?curator=Informerly";
-    Button zeen,weeb;
     
     WebView webView,zenView;
+    Button viewZenButton,viewWebButton, viewZenModeButton;
     ProgressBar webViewProgressBar,zenViewProgressBar;
     HttpEntity resEntityGet;
     boolean forlopp = true;
     String titles,id,token,articleid,json,baseUrlZen;
      static String baseurl = "http://informerly.com/api/v1/links/24203/read";
+
+    boolean onZenView = false;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -48,12 +51,14 @@ public class ArticleView extends ActionBarActivity {
         id = intent.getStringExtra("userid");
         token = intent.getStringExtra("token");
         articleid = intent.getStringExtra("feedid");
-        weeb = (Button) findViewById(R.id.web);
-        zeen = (Button) findViewById(R.id.zen);
         baseurl = "http://informerly.com/api/v1/links/"+articleid+"/read";
 
         webView = (WebView) findViewById(R.id.webview);
         zenView = (WebView) findViewById(R.id.webviewZen);
+
+        viewWebButton = (Button) findViewById(R.id.web);
+        viewZenButton = (Button) findViewById(R.id.zen);
+        viewZenModeButton = (Button) findViewById(R.id.viewZenModeButton);
 
         webViewProgressBar = (ProgressBar) findViewById(R.id.progressBar);
         zenViewProgressBar = (ProgressBar) findViewById(R.id.progressBarZen);
