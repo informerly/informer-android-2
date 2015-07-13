@@ -27,17 +27,13 @@ import com.informerly.informer.APICalls.MarkRead;
 
 import com.informerly.informer.R;
 
-
 public class ArticleView extends ActionBarActivity {
-    String url = "http://fortune.com/ikea-world-domination/?curator=Informerly";
     
     WebView webView,zenView;
     Button viewZenButton,viewWebButton, viewZenModeButton;
+    String url, titles,id,token,articleid,json,zenArticleContent;
     ProgressBar webViewProgressBar,zenViewProgressBar;
     HttpEntity resEntityGet;
-    boolean forlopp = true;
-    String titles,id,token,articleid,json,baseUrlZen;
-     static String baseurl = "http://informerly.com/api/v1/links/24203/read";
 
     boolean onZenView = false;
 
@@ -46,12 +42,13 @@ public class ArticleView extends ActionBarActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.article_view);
         Intent intent = getIntent();
+
+        // get article params
         url = intent.getStringExtra("Uurl");
         titles = intent.getStringExtra("Ttitle");
         id = intent.getStringExtra("userid");
         token = intent.getStringExtra("token");
         articleid = intent.getStringExtra("feedid");
-        baseurl = "http://informerly.com/api/v1/links/"+articleid+"/read";
 
         webView = (WebView) findViewById(R.id.webview);
         zenView = (WebView) findViewById(R.id.webviewZen);
@@ -235,24 +232,22 @@ public class ArticleView extends ActionBarActivity {
                 json = EntityUtils.toString(resEntityGet);
                 JSONObject jsonResponse = new JSONObject(json);
                 JSONArray cast = jsonResponse.getJSONArray("links");
-                for(int index=0;index<=19;index++) {
-                    if(forlopp) {
-                        JSONObject jsonObject = cast.getJSONObject(index);
-                        String name = jsonObject.getString("id");
-                        baseUrlZen = jsonObject.getString("content");
-                        if(name.equals(articleid))
-                        {
-                            forlopp = false;
-                        }
-                    }
+                
+                // Is totally necessary to load all zen content from server?
+                // I already have the article id that i need...
+                for(int index=0;index<=cast.length()-1;index++) {
+                    JSONObject jsonObject = cast.getJSONObject(index);
+                    String id = jsonObject.getString("id");
 
+                    if(id.equals(articleid)) {
+                        zenArticleContent = jsonObject.getString("content");
+                        break;
+                    }
                 }
             }
         }
         catch (Exception e) {
             Toast.makeText(ArticleView.this, "Connection error", Toast.LENGTH_SHORT).show();
-
-
         }
     }
 
