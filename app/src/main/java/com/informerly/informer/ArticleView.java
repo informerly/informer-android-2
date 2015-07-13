@@ -32,7 +32,6 @@ public class ArticleView extends ActionBarActivity {
     String url = "http://fortune.com/ikea-world-domination/?curator=Informerly";
     Button zeen,weeb;
     HttpEntity resEntityGet;
-    ProgressBar baar,baarZen;
     boolean forlopp = true;
     String titles,id,token,articleid,json,baseUrlZen;
      static String baseurl = "http://informerly.com/api/v1/links/24203/read";
@@ -48,8 +47,6 @@ public class ArticleView extends ActionBarActivity {
         articleid = intent.getStringExtra("feedid");
         myWebView = (WebView) findViewById(R.id.webview);
         myWebViewZen = (WebView) findViewById(R.id.webviewZen);
-        baar = (ProgressBar) findViewById(R.id.bar);
-        baarZen = (ProgressBar) findViewById(R.id.barZen);
         weeb = (Button) findViewById(R.id.web);
         zeen = (Button) findViewById(R.id.zen);
         baseurl = "http://informerly.com/api/v1/links/"+articleid+"/read";
@@ -59,16 +56,10 @@ public class ArticleView extends ActionBarActivity {
         myWebViewZen.setBackgroundColor(Color.TRANSPARENT);
         myWebViewZen.getSettings().setJavaScriptEnabled(true);
         myWebView.setWebViewClient(new MyWebViewClient());
-        myWebView.setWebViewClient(new WebViewClient() {
-
-            public void onPageFinished(WebView view, String url) {
-                baar.setVisibility(View.GONE);
             }
         });
         myWebViewZen.setWebViewClient(new WebViewClient() {
 
-            public void onPageFinished(WebView view, String url) {
-                baarZen.setVisibility(View.GONE);
             }
         });
         APIcallStaticPage();

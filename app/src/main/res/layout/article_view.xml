@@ -133,25 +133,5 @@
                 android:id="@+id/webviewZen">
 
             </WebView>
-    </GridLayout>
-
-    <ProgressBar
-        style="@style/TextAppearance.AppCompat.Widget.DropDownItem"
-        android:layout_width="50dp"
-        android:layout_height="50dp"
-        android:id="@+id/bar"
-        android:gravity="center_vertical|center_horizontal"
-        android:layout_alignParentTop="true"
-        android:layout_centerHorizontal="true"
-        android:layout_marginTop="280dp" />
-    <ProgressBar
-        style="@style/TextAppearance.AppCompat.Widget.DropDownItem"
-        android:layout_width="50dp"
-        android:layout_height="50dp"
-        android:id="@+id/barZen"
-        android:gravity="center_vertical|center_horizontal"
-        android:layout_alignParentTop="true"
-        android:layout_centerHorizontal="true"
-        android:layout_marginTop="280dp" />
 
 </RelativeLayout>
