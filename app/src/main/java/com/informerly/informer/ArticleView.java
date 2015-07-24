@@ -11,6 +11,7 @@ import android.webkit.WebChromeClient;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.widget.Button;
+import android.widget.LinearLayout;
 import android.widget.ProgressBar;
 import android.widget.Toast;
 
@@ -23,6 +24,8 @@ import org.apache.http.util.EntityUtils;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
+import android.util.Log;
+
 import com.informerly.informer.APICalls.MarkRead;
 
 import com.informerly.informer.R;
@@ -30,10 +33,11 @@ import com.informerly.informer.R;
 public class ArticleView extends ActionBarActivity {
     
     WebView webView,zenView;
-    Button viewZenButton,viewWebButton, viewZenModeButton;
+    Button viewZenButton,viewWebButton;
     String url, titles,id,token,articleid,json,zenArticleContent;
     ProgressBar webViewProgressBar,zenViewProgressBar;
     HttpEntity resEntityGet;
+    LinearLayout switchToZenView;
 
     boolean onZenView = false;
 
@@ -55,7 +59,8 @@ public class ArticleView extends ActionBarActivity {
 
         viewWebButton = (Button) findViewById(R.id.web);
         viewZenButton = (Button) findViewById(R.id.zen);
-        viewZenModeButton = (Button) findViewById(R.id.viewZenModeButton);
+
+        switchToZenView = (LinearLayout) findViewById(R.id.switchToZenView);
 
         webViewProgressBar = (ProgressBar) findViewById(R.id.progressBar);
         zenViewProgressBar = (ProgressBar) findViewById(R.id.progressBarZen);
@@ -73,7 +78,7 @@ public class ArticleView extends ActionBarActivity {
         zenView.setWebViewClient(new ZenWebViewClient());
 
         executeZen();
-        executeWeb();
+//        executeWeb();
 
         // set html view by default
         webView.loadUrl(url);
@@ -91,7 +96,7 @@ public class ArticleView extends ActionBarActivity {
             if(!onZenView && webView.getVisibility() != View.VISIBLE) {
                 webView.setVisibility(View.VISIBLE);
             }
-            viewZenModeButton.setVisibility(View.GONE);
+            switchToZenView.setVisibility(View.GONE);
             webViewProgressBar.setVisibility(View.GONE);
         }
     }
@@ -103,8 +108,8 @@ public class ArticleView extends ActionBarActivity {
 
             if(!onZenView && webView.getVisibility() != View.VISIBLE && newProgress >= 90) {
 
-                if(viewZenModeButton.getVisibility() == View.VISIBLE) {
-                    viewZenModeButton.setVisibility(View.GONE);
+                if(switchToZenView.getVisibility() == View.VISIBLE) {
+                    switchToZenView.setVisibility(View.GONE);
                 }
                 webView.setVisibility(View.VISIBLE);
             }
@@ -138,6 +143,7 @@ public class ArticleView extends ActionBarActivity {
         }
     }
 
+    // think we'll will use this when users click over a list row...
     public void executeWeb() {
         new loadWebPageTask().execute("");
     }
@@ -152,7 +158,7 @@ public class ArticleView extends ActionBarActivity {
             StrictMode.setThreadPolicy(policy);
         }
         try {
-            new MarkRead(token,id,articleid).mark();
+            new MarkRead( token, id, articleid).mark();
         } catch (Exception e) {
             Toast.makeText(ArticleView.this,"Connection error",Toast.LENGTH_SHORT).show();
         }
@@ -184,7 +190,7 @@ public class ArticleView extends ActionBarActivity {
         } else {
             webView.setVisibility(View.GONE);
             webViewProgressBar.setVisibility(View.VISIBLE);
-            viewZenModeButton.setVisibility(View.VISIBLE);
+            switchToZenView.setVisibility(View.VISIBLE);
         }
 
         onZenView = false;
@@ -209,7 +215,7 @@ public class ArticleView extends ActionBarActivity {
         }
 
         onZenView = true;
-        viewZenModeButton.setVisibility(View.GONE);
+        switchToZenView.setVisibility(View.GONE);
         viewWebButton.setBackgroundColor(Color.parseColor("#ff000000"));
         viewZenButton.setBackgroundColor(Color.parseColor("#FF3B9EFC"));
     }
@@ -225,14 +231,22 @@ public class ArticleView extends ActionBarActivity {
             client.getParams().setParameter(org.apache.http.params.CoreProtocolPNames.USER_AGENT, System.getProperty("http.agent"));
             String getURL = "http://informerly.com/api/v1/feeds?auth_token=" + token + "&content=true";
 
+//            String getURL = "http://informerly.com/api/v1/links/" + articleid + "?auth_token=" + token;
+
             HttpGet get = new HttpGet(getURL);
             HttpResponse responseGet = client.execute(get);
             resEntityGet = responseGet.getEntity();
             if (resEntityGet != null) {
+
+//                json = EntityUtils.toString(resEntityGet);
+//                JSONObject jsonResponse = new JSONObject(json);
+//                Object link = jsonResponse.getJSONObject("link");
+//                Log.d("MATIAS",link.toString());
+
                 json = EntityUtils.toString(resEntityGet);
                 JSONObject jsonResponse = new JSONObject(json);
                 JSONArray cast = jsonResponse.getJSONArray("links");
-                
+
                 // Is totally necessary to load all zen content from server?
                 // I already have the article id that i need...
                 for(int index=0;index<=cast.length()-1;index++) {

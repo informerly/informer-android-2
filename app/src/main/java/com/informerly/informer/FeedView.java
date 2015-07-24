@@ -24,6 +24,7 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.GridLayout;
 import android.widget.ImageView;
+import android.widget.LinearLayout;
 import android.widget.ListView;
 import android.widget.ProgressBar;
 import android.widget.RelativeLayout;
@@ -34,47 +35,57 @@ import org.apache.http.HttpEntity;
 import org.apache.http.util.EntityUtils;
 import org.json.JSONArray;
 import org.json.JSONObject;
+import org.json.JSONException;
 import java.util.ArrayList;
 
 import com.informerly.informer.APICalls.HttpGetArticle;
 import com.informerly.informer.APICalls.HttpLogout;
-
-import com.informerly.informer.R;
+import com.informerly.informer.APICalls.MarkRead;
 
 public class FeedView extends Activity {
-    String token, id, json, check,useremail;
+    String sessionToken, userId, json, check,useremail;
     DrawerLayout drawer, drawe;
     ListView listt;
     ProgressBar baar;
     GridLayout gridlayout;
     Button send;
     SwipeRefreshLayout refresher;
-    private ListView mainListView;
-    private ArrayAdapter<String> listAdapters;
     JSONObject logout;
     TextView helpt, mail, contacts;
-    ArrayList<String> source,feedid,title,time,color,url,isread,slug,shortlink,feedbookmark,description;
     EditText feedsend;
     RelativeLayout menu, men;
-    private CharSequence mTitle;
+    ArrayList<Article> listItems, unreadItems;
+    private ListView mainListView;
+    private ArrayAdapter<Article> listArticleAdapters, unreadArticleAdapters;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_feed_view);
         Intent intent = getIntent();
+
         listt = (ListView)findViewById(R.id.list);
+
         listt.setOnItemClickListener(new AdapterView.OnItemClickListener() {
-            public void onItemClick(AdapterView<?> parent, View view,int position, long iid) {
+
+            public void onItemClick(AdapterView<?> parent, View view, int position, long iid) {
+
+                // reading article actions
+                new markReadedArticleTask().execute(String.valueOf(listItems.get(position - 1).id));
+                unreadItems.remove(listItems.get(position - 1));
+
                 Intent i = new Intent(FeedView.this, ArticleView.class);
-                i.putExtra("Uurl",url.get(position));
-                i.putExtra("Ttitle",title.get(position));
-                i.putExtra("feedid",feedid.get(position));
-                i.putExtra("token",token);
-                i.putExtra("userid",id);
+                i.putExtra("Uurl", listItems.get(position-1).url);
+                i.putExtra("Ttitle", listItems.get(position-1).title);
+                i.putExtra("feedid", String.valueOf(listItems.get(position-1).id));
+
+                i.putExtra("token", sessionToken);
+                i.putExtra("userid", userId);
                 startActivity(i);
             }
         });
+
+
         drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
         baar = (ProgressBar) findViewById(R.id.bar);
         menu = (RelativeLayout) findViewById(R.id.list_slidermenu);
@@ -87,26 +98,74 @@ public class FeedView extends Activity {
         helpt = (TextView) findViewById(R.id.helpText);
         contacts = (TextView) findViewById(R.id.contact);
         mail = (TextView) findViewById(R.id.mailid);
-        token = intent.getStringExtra("Token");
-        id = intent.getStringExtra("id");
+        sessionToken = intent.getStringExtra("Token");
+        userId = intent.getStringExtra("id");
         useremail = intent.getStringExtra("useremail");
         drawe.setDrawerLockMode(DrawerLayout.LOCK_MODE_LOCKED_CLOSED);
         drawer.setDrawerLockMode(DrawerLayout.LOCK_MODE_LOCKED_CLOSED);
-        source = new ArrayList<String>();
-        title = new ArrayList<String>();
-        isread = new ArrayList<String>();
-        time = new ArrayList<String>();
-        color = new ArrayList<String>();
-        feedid = new ArrayList<String>();
-        url = new ArrayList<String>();
         refresher = (SwipeRefreshLayout) findViewById(R.id.swipedown);
         refresher.setOnRefreshListener(new SwipeRefreshLayout.OnRefreshListener() {
             @Override
             public void onRefresh() {
-                new feedings().execute("");
+                new feedTask().execute("");
             }
         });
-        new feedings().execute("");
+
+        new feedTask().execute("");
+
+        LinearLayout topButtons = (LinearLayout)getLayoutInflater().inflate(R.layout.action_row, null);
+
+        // Adding Load More button to lisview at top
+        listt.addHeaderView(topButtons);
+    }
+
+    public void readArticle(String articleid) {
+        if (android.os.Build.VERSION.SDK_INT > 9) {
+            StrictMode.ThreadPolicy policy = new StrictMode.ThreadPolicy.Builder().permitAll().build();
+            StrictMode.setThreadPolicy(policy);
+        }
+        try {
+            new MarkRead(sessionToken,userId,articleid).mark();
+        } catch (Exception e) {
+            Toast.makeText(FeedView.this,"Connection error",Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    private class markReadedArticleTask extends AsyncTask<String, Void, String> {
+        //ProgressDialog dilog;
+        @Override
+        protected String doInBackground(String... params) {
+            try {
+                String articleId = params[0];
+                readArticle(articleId);
+            }
+            catch(Exception e)
+            {
+                Toast.makeText(FeedView.this,"Connection error",Toast.LENGTH_SHORT).show();
+            }
+            return "Executed";
+        }
+
+        @Override
+        protected void onPostExecute(String result) {
+        }
+
+        @Override
+        protected void onPreExecute() {
+        }
+    }
+
+
+    public void say_hello(View v) {
+        Log.d("Just test","hello there!");
+    }
+
+    public void filterAllNews(View v) {
+        mainListView.setAdapter(listArticleAdapters);
+    }
+
+    public void filterUnreadNews(View v) {
+        mainListView.setAdapter(unreadArticleAdapters);
     }
 
     public void close_Me(View v) {
@@ -164,7 +223,7 @@ public class FeedView extends Activity {
         if (!drawe.isDrawerVisible(men)) {
             boolean iff = isNetworkAvailable();
             if (iff) {
-                new MyTask().execute("");
+                new LogoutTask().execute("");
             } else {
                 Toast.makeText(this, "No Internet Connection", Toast.LENGTH_LONG).show();
             }
@@ -177,7 +236,7 @@ public class FeedView extends Activity {
             StrictMode.setThreadPolicy(policy);
         }
         try {
-            HttpEntity resEntity =  new HttpLogout(token,id).getEntity();
+            HttpEntity resEntity =  new HttpLogout(sessionToken,userId).getEntity();
             if (resEntity != null) {
                 json = EntityUtils.toString(resEntity);
                 try {
@@ -208,7 +267,90 @@ public class FeedView extends Activity {
         return activeNetworkInfo != null && activeNetworkInfo.isConnected();
     }
 
-    private class MyTask extends AsyncTask<String, Void, String> {
+    public class Article {
+        /* ACTUAL ARTICLE MODEL API RESPONSE
+        {
+            "id":38685,
+            "title":"Web Design - The First 100 Years",
+            "description":"This is the expanded version of a talk I gave on September 9, 2014, at the HOW Interactive Design conference in Washington, DC.",
+            "reading_time":2,
+            "source":"Idlewords",
+            "published_at":"2015-07-21T18:38:02.440-04:00",
+            "original_date":null,
+            "slug":"web-design-the-first-100-years",
+            "url":"http://idlewords.com/talks/web_design_first_100_years.htm?curator=Informerly",
+            "read":true,
+            "bookmarked":false,
+            "source_color":"#ae1414"
+        }
+        */
+
+        int id;
+        String title;
+        String description;
+        int reading_time;
+        String source;
+        String published_at;
+        String original_date;
+        String slug;
+        String url;
+        boolean read;
+        boolean bookmarked;
+        String source_color;
+
+        public Article(
+                int id,
+                String title,
+                String description,
+                int reading_time,
+                String source,
+                String published_at,
+                String original_date,
+                String slug,
+                String url,
+                boolean read,
+                boolean bookmarked,
+                String source_color
+                )
+        {
+
+            this.id = id;
+            this.title = title;
+            this.description = description;
+            this.reading_time = reading_time;
+            this.source = source;
+            this.published_at = published_at;
+            this.original_date = original_date;
+            this.slug = slug;
+            this.url = url;
+            this.read = read;
+            this.bookmarked = bookmarked;
+            this.source_color = source_color;
+            
+        }
+        
+        public Article( JSONObject jsonArticle ) {
+            try {
+                this.id = jsonArticle.getInt("id");
+                this.title = jsonArticle.getString("title");
+                this.description = jsonArticle.getString("description");
+                this.reading_time = jsonArticle.getInt("reading_time");
+                this.source = jsonArticle.getString("source");
+                this.published_at = jsonArticle.getString("published_at");
+                this.original_date = jsonArticle.getString("original_date");
+                this.slug = jsonArticle.getString("slug");
+                this.url = jsonArticle.getString("url");
+                this.read = jsonArticle.getBoolean("read");
+                this.bookmarked = jsonArticle.getBoolean("bookmarked");
+                this.source_color = jsonArticle.getString("source_color");
+            }
+            catch (JSONException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
+    private class LogoutTask extends AsyncTask<String, Void, String> {
         ProgressDialog dialog;
 
         @Override
@@ -242,67 +384,59 @@ public class FeedView extends Activity {
         }
     }
 
-    public void getFeeds() {
+    public void getArticles() {
         if (android.os.Build.VERSION.SDK_INT > 9) {
             StrictMode.ThreadPolicy policy = new StrictMode.ThreadPolicy.Builder().permitAll().build();
             StrictMode.setThreadPolicy(policy);
         }
         try {
-            HttpEntity resEntityGet = new HttpGetArticle(token,id).getArticles();
+            HttpEntity resEntityGet = new HttpGetArticle(sessionToken,userId).getArticles();
+
+            listItems = new ArrayList<Article>();
+            unreadItems = new ArrayList<Article>();
+
             if (resEntityGet != null) {
                 json = EntityUtils.toString(resEntityGet);
+
                 try {
                     JSONObject jsonResponse = new JSONObject(json);
-                    JSONArray cast = jsonResponse.getJSONArray("links");
-                    source.clear();
-                    title.clear();
-                    time.clear();
-                    isread.clear();
-                    color.clear();
-                    url.clear();
-                    feedid.clear();
-                    for(int index = 0; index < cast.length(); index++) {
-                        JSONObject jsonObject = cast.getJSONObject(index);
+                    JSONArray jsonArticles = jsonResponse.getJSONArray("links");
 
-                        String name = jsonObject.getString("source");
-                        source.add(name);
-                        String tit = jsonObject.getString("title");
-                        title.add(tit);
-                        String tim = jsonObject.getString("reading_time");
-                        time.add(tim);
-                        String isred = jsonObject.getString("read");
-                        isread.add(isred);
-                        String colr = jsonObject.getString("source_color");
-                        color.add(colr);
-                        String fedid = jsonObject.getString("id");
-                        feedid.add(fedid);
-                        String urll = jsonObject.getString("url");
-                        url.add(urll);
+                    for(int index = 0; index < jsonArticles.length(); index++) {
+
+                        Article newItem = new Article( jsonArticles.getJSONObject(index) );
+                        listItems.add( newItem );
+
+                        if(!newItem.read) {
+                            unreadItems.add(newItem);
+                        }
+
                     }
                 } catch (Exception e) {
                     Toast.makeText(this,"Failed :Please refresh",Toast.LENGTH_SHORT).show();
                     e.printStackTrace();
                 }
-                Log.i("GET RESPONSE", json);
             }
         } catch (Exception e) {
             e.printStackTrace();
         }
     }
 
-    private class feedings extends AsyncTask<String, Void, String> {
+    private class feedTask extends AsyncTask<String, Void, String> {
 
         @Override
         protected String doInBackground(String... params) {
-            getFeeds();
+            getArticles();
             return "Executed";
         }
 
         @Override
         protected void onPostExecute(String result) {
             try {
-                listAdapters = new CustomAdapter(FeedView.this,source);
-                mainListView.setAdapter(listAdapters);
+                listArticleAdapters = new ArticlesObjectAdapter(FeedView.this,listItems);
+                unreadArticleAdapters = new ArticlesObjectAdapter(FeedView.this,unreadItems);
+                mainListView.setAdapter(listArticleAdapters);
+
                 baar.setVisibility(View.GONE);
                 refresher.setRefreshing(false);
             } catch (Exception r) {
@@ -314,12 +448,16 @@ public class FeedView extends Activity {
         protected void onPreExecute() {
         }
     }
-    private class CustomAdapter extends ArrayAdapter<String> {
+
+
+    private class ArticlesObjectAdapter extends ArrayAdapter<Article> {
 
         protected Context mContext;
-        protected ArrayList<String> mItems;
+        protected ArrayList<Article> mItems;
 
-        public CustomAdapter(Context context, ArrayList<String> items) {
+        protected ArrayList<String> original;
+
+        public ArticlesObjectAdapter(Context context, ArrayList<Article> items) {
             super(context, R.layout.row, items);
             mContext = context;
             mItems = items;
@@ -334,11 +472,12 @@ public class FeedView extends Activity {
             ImageView clockview =((ImageView) convertView.findViewById(R.id.clock));
             TextView sourceview = ((TextView) convertView.findViewById(R.id.source));
 
-            titleview.setText(title.set(position,title.get(position)));
-            sourceview.setText(source.set(position, source.get(position)));
-            sourceview.setTextColor(Color.parseColor(color.get(position)));
+            titleview.setText(mItems.get(position).title);
+            sourceview.setText(mItems.get(position).source);
+            sourceview.setTextColor(Color.parseColor( mItems.get(position).source_color ));
             sourceview.setTypeface(null, Typeface.BOLD);
-            if(isread.get(position)== "true")
+
+            if(mItems.get(position).read)
             {
                 readview.setText("Read");
                 titleview.setTypeface(null, Typeface.NORMAL);
@@ -350,9 +489,12 @@ public class FeedView extends Activity {
                 titleview.setTextColor(Color.BLACK);
                 titleview.setTypeface(null, Typeface.BOLD);
                 clockview.setImageResource(R.drawable.clock);
-                readview.setText(time.set(position, time.get(position)) + " min read");
+                readview.setText(mItems.get(position).reading_time + " min read");
             }
+
             return convertView;
         }
+
     }
+
 }
