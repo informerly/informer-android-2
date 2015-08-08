@@ -7,23 +7,32 @@ import org.apache.http.client.methods.HttpGet;
 import org.apache.http.impl.client.DefaultHttpClient;
 
 
-public class HttpGetArticle {
+public class HttpGetFeedArticles {
     String token, id;
-    HttpEntity resEntityGet;
+    int feedId;
 
-    public HttpGetArticle(String tooken, String userid) {
+    public HttpGetFeedArticles(String tooken, String userid) {
         this.token = tooken;
         this.id = userid;
     }
-    public HttpEntity getArticles()
+    public HttpEntity getArticles(int feedId)
     {
+        String getURL;
+        HttpEntity resEntityGet = null;
+
         try {
             HttpClient client = new DefaultHttpClient();
             client.getParams().setParameter(org.apache.http.params.CoreProtocolPNames.USER_AGENT, System.getProperty("http.agent"));
-            String getURL = "http://informerly.com/api/v1/feeds?auth_token=" + token + "&client_id=" + id;
+
+            if(feedId!=-0) {
+                getURL = "https://informerly.com/api/v1/feeds/"+Integer.toString(feedId)+"?auth_token=" + token + "&client_id=" + id;
+            } else {
+                getURL = "https://informerly.com/api/v1/feeds?auth_token=" + token + "&client_id=" + id;
+            }
+
             HttpGet get = new HttpGet(getURL);
             HttpResponse responseGet = client.execute(get);
-             resEntityGet = responseGet.getEntity();
+            resEntityGet = responseGet.getEntity();
 
         } catch (Exception e) {
             e.printStackTrace();
