@@ -35,7 +35,7 @@ public class HttpLogin {
         try {
             HttpClient client = new DefaultHttpClient();
             client.getParams().setParameter(org.apache.http.params.CoreProtocolPNames.USER_AGENT, System.getProperty("http.agent"));
-            String postURL = "http://informerly.com/api/v1/users/sign_in";
+            String postURL = "https://informerly.com/api/v1/users/sign_in";
             HttpPost post = new HttpPost(postURL);
             List<NameValuePair> params = new ArrayList<NameValuePair>();
             username = emails.getText().toString();
