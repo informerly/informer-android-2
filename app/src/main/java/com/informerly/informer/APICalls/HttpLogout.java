@@ -26,7 +26,7 @@ public class HttpLogout {
 
             HttpClient client = new DefaultHttpClient();
             client.getParams().setParameter(org.apache.http.params.CoreProtocolPNames.USER_AGENT, System.getProperty("http.agent"));
-            String postURL = "http://informerly.com/api/v1/users/sign_out";
+            String postURL = "https://informerly.com/api/v1/users/sign_out";
             HttpDelete delete = new HttpDelete(postURL);
             delete.setHeader("auth_token", token);
             delete.setHeader("client_id", id);
