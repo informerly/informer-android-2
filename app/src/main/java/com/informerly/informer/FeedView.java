@@ -1,6 +1,5 @@
 package com.informerly.informer;
 
-import android.app.Activity;
 import android.app.ProgressDialog;
 import android.content.Context;
 import android.content.Intent;
@@ -11,8 +10,10 @@ import android.net.NetworkInfo;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.StrictMode;
+
 import android.support.v4.widget.DrawerLayout;
 import android.support.v4.widget.SwipeRefreshLayout;
+import android.support.v7.app.ActionBarActivity;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -20,7 +21,6 @@ import android.view.ViewGroup;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
-import android.widget.Button;
 import android.widget.EditText;
 import android.widget.GridLayout;
 import android.widget.ImageView;
@@ -31,42 +31,84 @@ import android.widget.RelativeLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import android.support.v7.app.ActionBarDrawerToggle;
+import android.support.v7.widget.Toolbar;
+
 import org.apache.http.HttpEntity;
 import org.apache.http.util.EntityUtils;
 import org.json.JSONArray;
 import org.json.JSONObject;
-import org.json.JSONException;
+import org.w3c.dom.Text;
+
 import java.util.ArrayList;
 
-import com.informerly.informer.APICalls.HttpGetArticle;
+import com.informerly.informer.APICalls.HttpGetFeedArticles;
+import com.informerly.informer.APICalls.GetFeeds;
 import com.informerly.informer.APICalls.HttpLogout;
 import com.informerly.informer.APICalls.MarkRead;
 
-public class FeedView extends Activity {
-    String sessionToken, userId, json, check,useremail;
-    DrawerLayout drawer, drawe;
-    ListView listt;
-    ProgressBar baar;
-    GridLayout gridlayout;
-    Button send;
-    SwipeRefreshLayout refresher;
-    JSONObject logout;
-    TextView helpt, mail, contacts;
-    EditText feedsend;
-    RelativeLayout menu, men;
-    ArrayList<Article> listItems, unreadItems;
-    private ListView mainListView;
+
+public class FeedView extends ActionBarActivity {
+
+    private String sessionToken, userId,useremail;
+    private DrawerLayout drawerAppContent;
+
+    private ListView articleList, feedsListView;
+    private SwipeRefreshLayout articlesRefresher, feedsRefresher;
+
+    private ProgressBar articleProgressBar;
+
+    private ArrayList<Article> listItems, unreadItems;
+    private ArrayList<Feed> feedItems;
+    private RelativeLayout feedsMenu;
+
     private ArrayAdapter<Article> listArticleAdapters, unreadArticleAdapters;
+    private ArrayAdapter<Feed> listFeedsAdapters;
+
+    private static Context mContext;
+
+//  private ActionBarDrawerToggle mDrawerToggle;
+//  private EditText feedsend;
+
+    private TextView headerTitle;
+
+    private int actualFeedId;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_feed_view);
         Intent intent = getIntent();
+        this.mContext = this;
 
-        listt = (ListView)findViewById(R.id.list);
+        // Getting user data
+        sessionToken = intent.getStringExtra("Token");
+        userId = intent.getStringExtra("id");
+        useremail = intent.getStringExtra("useremail");
 
-        listt.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+        // Preparing main Layout
+        drawerAppContent = (DrawerLayout) findViewById(R.id.drawer_app_content);
+        drawerAppContent.setDrawerLockMode(DrawerLayout.LOCK_MODE_LOCKED_CLOSED);
+
+        // get the progress bar
+        articleProgressBar = (ProgressBar) findViewById(R.id.articleProgressBar);
+
+        // get the app header tittle
+        headerTitle = (TextView) findViewById(R.id.app_header_title);
+        
+        // Setting up application Toolbar
+        Toolbar actionBarToolbar = (Toolbar) findViewById(R.id.app_toolbar);
+        setSupportActionBar(actionBarToolbar);
+
+        // Left feeds/options menu
+        feedsMenu = (RelativeLayout) findViewById(R.id.left_menu);
+        feedsListView = (ListView) findViewById(R.id.feedMenuList);
+
+        // Preparing articles list
+        articleList = (ListView)findViewById(R.id.article_list);
+        articleList = (ListView) findViewById(R.id.article_list);
+        articleList.setOnItemClickListener(new AdapterView.OnItemClickListener() {
 
             public void onItemClick(AdapterView<?> parent, View view, int position, long iid) {
 
@@ -85,38 +127,61 @@ public class FeedView extends Activity {
             }
         });
 
+        // Adding articles filters at top of list
+        LinearLayout topButtons = (LinearLayout)getLayoutInflater().inflate(R.layout.action_row, null);
+        articleList.addHeaderView(topButtons);
 
-        drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
-        baar = (ProgressBar) findViewById(R.id.bar);
-        menu = (RelativeLayout) findViewById(R.id.list_slidermenu);
-        drawe = (DrawerLayout) findViewById(R.id.drawer_layou);
-        men = (RelativeLayout) findViewById(R.id.list_slidermen);
-        gridlayout = (GridLayout) findViewById(R.id.gridLayout);
-        send = (Button) findViewById(R.id.send);
-        mainListView = (ListView) findViewById(R.id.list);
-        feedsend = (EditText) findViewById(R.id.feedSend);
-        helpt = (TextView) findViewById(R.id.helpText);
-        contacts = (TextView) findViewById(R.id.contact);
-        mail = (TextView) findViewById(R.id.mailid);
-        sessionToken = intent.getStringExtra("Token");
-        userId = intent.getStringExtra("id");
-        useremail = intent.getStringExtra("useremail");
-        drawe.setDrawerLockMode(DrawerLayout.LOCK_MODE_LOCKED_CLOSED);
-        drawer.setDrawerLockMode(DrawerLayout.LOCK_MODE_LOCKED_CLOSED);
-        refresher = (SwipeRefreshLayout) findViewById(R.id.swipedown);
-        refresher.setOnRefreshListener(new SwipeRefreshLayout.OnRefreshListener() {
+        // Articles refresher list action
+        articlesRefresher = (SwipeRefreshLayout) findViewById(R.id.swipeArticlesRefresher);
+        articlesRefresher.setOnRefreshListener(new SwipeRefreshLayout.OnRefreshListener() {
             @Override
             public void onRefresh() {
-                new feedTask().execute("");
+                new feedTask().execute(Integer.toString(actualFeedId));
             }
         });
+        
+        // Feeds refresher list action
+        feedsRefresher = (SwipeRefreshLayout) findViewById(R.id.swipeFeedsRefresher);
+        feedsRefresher.setOnRefreshListener(new SwipeRefreshLayout.OnRefreshListener() {
+            @Override
+            public void onRefresh() {
+                new userFeedsTask().execute("");
+            }
+        });
+        
 
-        new feedTask().execute("");
+//        mDrawerToggle = new ActionBarDrawerToggle(
+//                this,                  /* host Activity */
+//                drawerAppContent,         /* DrawerLayout object */
+//                actionBarToolbar,  /* nav drawer icon to replace 'Up' caret */
+//                R.string.drawer_open,  /* "open drawer" description */
+//                R.string.drawer_close  /* "close drawer" description */
+//        ) {
+//
+//            /** Called when a drawer has settled in a completely closed state. */
+//            public void onDrawerClosed(View view) {
+//                super.onDrawerClosed(view);
+////                getActionBar().setTitle(mTitle);
+//                Log.d("debug","Menu Closed");
+//            }
+//
+//            /** Called when a drawer has settled in a completely open state. */
+//            public void onDrawerOpened(View drawerView) {
+//                super.onDrawerOpened(drawerView);
+////                getActionBar().setTitle(mDrawerTitle);
+//                Log.d("debug","Menu Opened");
+//            }
+//        };
+        
 
-        LinearLayout topButtons = (LinearLayout)getLayoutInflater().inflate(R.layout.action_row, null);
+        // Starting app, getting default feed
+        new feedTask().execute("0");
+        new userFeedsTask().execute("");
 
-        // Adding Load More button to lisview at top
-        listt.addHeaderView(topButtons);
+    }
+
+    public static Context getContext(){
+        return mContext;
     }
 
     public void readArticle(String articleid) {
@@ -157,76 +222,58 @@ public class FeedView extends Activity {
 
 
     public void say_hello(View v) {
-        Log.d("Just test","hello there!");
+        Log.d("Just test", "hello there!");
+    }
+
+    public void switchDrawer(View v) {
+
+        if(drawerAppContent.isDrawerOpen(feedsMenu)) {
+            drawerAppContent.closeDrawer(feedsMenu);
+        } else {
+            drawerAppContent.openDrawer(feedsMenu);
+        }
     }
 
     public void filterAllNews(View v) {
-        mainListView.setAdapter(listArticleAdapters);
+        articleList.setAdapter(listArticleAdapters);
     }
 
     public void filterUnreadNews(View v) {
-        mainListView.setAdapter(unreadArticleAdapters);
+        articleList.setAdapter(unreadArticleAdapters);
     }
 
-    public void close_Me(View v) {
-        if (!drawe.isDrawerVisible(men)) {
-            gridlayout.setVisibility(View.VISIBLE);
-            drawer.closeDrawer(menu);
-        }
-    }
 
-    public void close_Me2(View v) {
-        hideKeyboard();
-        drawe.closeDrawer(men);
-    }
-
-    private void hideKeyboard() {
-        View view = this.getCurrentFocus();
-        if (view != null) {
-            InputMethodManager inputManager = (InputMethodManager) this.getSystemService(Context.INPUT_METHOD_SERVICE);
-            inputManager.hideSoftInputFromWindow(view.getWindowToken(), InputMethodManager.HIDE_NOT_ALWAYS);
-        }
-    }
-
-    public void help_Me(View v) {
-        helpt.setText("Help");
-        contacts.setVisibility(View.VISIBLE);
-        mail.setVisibility(View.VISIBLE);
-        feedsend.setVisibility(View.GONE);
-        send.setVisibility(View.GONE);
-        drawe.openDrawer(men);
-    }
-
-    public void feed_Me(View v) {
-        if (!drawe.isDrawerVisible(men)) {
-            contacts.setVisibility(View.GONE);
-            mail.setVisibility(View.GONE);
-            feedsend.setVisibility(View.VISIBLE);
-            feedsend.setText("");
-            send.setVisibility(View.VISIBLE);
-            helpt.setText("Feedback");
-            drawe.openDrawer(men);
-        }
-    }
-
-    public void sendMe(View v) {
-        hideKeyboard();
-        Intent Email = new Intent(Intent.ACTION_SEND);
-        Email.setType("text/email");
-        Email.putExtra(Intent.EXTRA_EMAIL, new String[]{"info@informerly.com"});
-        Email.putExtra(Intent.EXTRA_SUBJECT, "App Feedback from "+useremail);
-        Email.putExtra(Intent.EXTRA_TEXT, feedsend.getText().toString());
-        startActivity(Email);
-    }
+//    Deprecated methods
+//
+//    public void close_Me2(View v) {
+//        hideKeyboard();
+//        drawe.closeDrawer(men);
+//    }
+//    private void hideKeyboard() {
+//        View view = this.getCurrentFocus();
+//        if (view != null) {
+//            InputMethodManager inputManager = (InputMethodManager) this.getSystemService(Context.INPUT_METHOD_SERVICE);
+//            inputManager.hideSoftInputFromWindow(view.getWindowToken(), InputMethodManager.HIDE_NOT_ALWAYS);
+//        }
+//    }
+//    public void sendMe(View v) {
+//        hideKeyboard();
+//        Intent Email = new Intent(Intent.ACTION_SEND);
+//        Email.setType("text/email");
+//        Email.putExtra(Intent.EXTRA_EMAIL, new String[]{"info@informerly.com"});
+//        Email.putExtra(Intent.EXTRA_SUBJECT, "App Feedback from "+useremail);
+//        Email.putExtra(Intent.EXTRA_TEXT, feedsend.getText().toString());
+//        startActivity(Email);
+//    }
 
     public void logout_Me(View v) {
-        if (!drawe.isDrawerVisible(men)) {
-            boolean iff = isNetworkAvailable();
-            if (iff) {
-                new LogoutTask().execute("");
-            } else {
-                Toast.makeText(this, "No Internet Connection", Toast.LENGTH_LONG).show();
-            }
+
+        boolean iff = isNetworkAvailable();
+        if (iff) {
+    //      new LogoutTask2().execute(sessionToken, userId);
+            new LogoutTask().execute("");
+        } else {
+            Toast.makeText(this, "No Internet Connection", Toast.LENGTH_LONG).show();
         }
     }
 
@@ -237,117 +284,17 @@ public class FeedView extends Activity {
         }
         try {
             HttpEntity resEntity =  new HttpLogout(sessionToken,userId).getEntity();
-            if (resEntity != null) {
-                json = EntityUtils.toString(resEntity);
-                try {
-                    logout = (new JSONObject(json));
-                    check = logout.getString("success");
-                } catch (Exception e) {
-
-                }
-
-
-            }
         } catch (Exception e) {
+            e.printStackTrace();
         }
 
     }
-
-    public void open_Me(View v) {
-
-        gridlayout.setVisibility(View.GONE);
-        drawer.openDrawer(menu);
-    }
-
 
     private boolean isNetworkAvailable() {
         ConnectivityManager connectivityManager
                 = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
         NetworkInfo activeNetworkInfo = connectivityManager.getActiveNetworkInfo();
         return activeNetworkInfo != null && activeNetworkInfo.isConnected();
-    }
-
-    public class Article {
-        /* ACTUAL ARTICLE MODEL API RESPONSE
-        {
-            "id":38685,
-            "title":"Web Design - The First 100 Years",
-            "description":"This is the expanded version of a talk I gave on September 9, 2014, at the HOW Interactive Design conference in Washington, DC.",
-            "reading_time":2,
-            "source":"Idlewords",
-            "published_at":"2015-07-21T18:38:02.440-04:00",
-            "original_date":null,
-            "slug":"web-design-the-first-100-years",
-            "url":"http://idlewords.com/talks/web_design_first_100_years.htm?curator=Informerly",
-            "read":true,
-            "bookmarked":false,
-            "source_color":"#ae1414"
-        }
-        */
-
-        int id;
-        String title;
-        String description;
-        int reading_time;
-        String source;
-        String published_at;
-        String original_date;
-        String slug;
-        String url;
-        boolean read;
-        boolean bookmarked;
-        String source_color;
-
-        public Article(
-                int id,
-                String title,
-                String description,
-                int reading_time,
-                String source,
-                String published_at,
-                String original_date,
-                String slug,
-                String url,
-                boolean read,
-                boolean bookmarked,
-                String source_color
-                )
-        {
-
-            this.id = id;
-            this.title = title;
-            this.description = description;
-            this.reading_time = reading_time;
-            this.source = source;
-            this.published_at = published_at;
-            this.original_date = original_date;
-            this.slug = slug;
-            this.url = url;
-            this.read = read;
-            this.bookmarked = bookmarked;
-            this.source_color = source_color;
-            
-        }
-        
-        public Article( JSONObject jsonArticle ) {
-            try {
-                this.id = jsonArticle.getInt("id");
-                this.title = jsonArticle.getString("title");
-                this.description = jsonArticle.getString("description");
-                this.reading_time = jsonArticle.getInt("reading_time");
-                this.source = jsonArticle.getString("source");
-                this.published_at = jsonArticle.getString("published_at");
-                this.original_date = jsonArticle.getString("original_date");
-                this.slug = jsonArticle.getString("slug");
-                this.url = jsonArticle.getString("url");
-                this.read = jsonArticle.getBoolean("read");
-                this.bookmarked = jsonArticle.getBoolean("bookmarked");
-                this.source_color = jsonArticle.getString("source_color");
-            }
-            catch (JSONException e) {
-                e.printStackTrace();
-            }
-        }
     }
 
     private class LogoutTask extends AsyncTask<String, Void, String> {
@@ -363,12 +310,7 @@ public class FeedView extends Activity {
         protected void onPostExecute(String result) {
             dialog.cancel();
             try {
-                if (check.equals("true")) {
-                    Toast.makeText(FeedView.this, "You have been logged out.", Toast.LENGTH_SHORT).show();
-                    finish();
-                } else {
-                    Toast.makeText(FeedView.this, "Error logging out, Try Again", Toast.LENGTH_LONG).show();
-                }
+                finish();
             } catch (Exception r) {
                 r.printStackTrace();
             }
@@ -384,19 +326,126 @@ public class FeedView extends Activity {
         }
     }
 
-    public void getArticles() {
+    public void getUserFeeds() {
         if (android.os.Build.VERSION.SDK_INT > 9) {
             StrictMode.ThreadPolicy policy = new StrictMode.ThreadPolicy.Builder().permitAll().build();
             StrictMode.setThreadPolicy(policy);
         }
         try {
-            HttpEntity resEntityGet = new HttpGetArticle(sessionToken,userId).getArticles();
+            HttpEntity resEntityGet = new GetFeeds(sessionToken,userId).getUserFeeds();
+
+            feedItems = new ArrayList<Feed>();
+
+            if (resEntityGet != null) {
+                String json = EntityUtils.toString(resEntityGet);
+
+                try {
+                    JSONObject response = new JSONObject(json);
+                    JSONArray feeds = response.getJSONArray("feeds");
+
+                    // adding first default user feed
+                    Feed defaultFeed = new Feed( 0, "Your Feed", "MAGIC", true, Integer.parseInt(userId) );
+                    feedItems.add(defaultFeed);
+
+                    for (int i = 0; i < feeds.length(); ++i) {
+                        JSONObject feed = feeds.getJSONObject(i);
+                        Feed menuFeed = new Feed( feed );
+                        feedItems.add(menuFeed);
+                    }
+
+                } catch (Exception e) {
+                    Toast.makeText(this,"Failed :Please refresh",Toast.LENGTH_SHORT).show();
+                    e.printStackTrace();
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+
+    private class userFeedsTask extends AsyncTask<String, Void, String> {
+
+        @Override
+        protected String doInBackground(String... params) {
+            getUserFeeds();
+            return "Executed";
+        }
+
+        @Override
+        protected void onPostExecute(String result) {
+            try {
+                listFeedsAdapters = new FeedObjectAdapter(FeedView.this,feedItems);
+                feedsListView.setAdapter(listFeedsAdapters);
+
+                feedsListView.setOnItemClickListener(new feedItemClickListener());
+
+                feedsRefresher.setRefreshing(false);
+            } catch (Exception r) {
+                r.printStackTrace();
+            }
+        }
+
+        @Override
+        protected void onPreExecute() {
+        }
+    }
+
+    private class feedItemClickListener implements ListView.OnItemClickListener {
+        @Override
+        public void onItemClick(AdapterView parent, View view, int position, long id) {
+            new feedTask().execute(Integer.toString(feedItems.get(position).id));
+            headerTitle.setText(feedItems.get(position).name);
+            switchDrawer(feedsMenu);
+        }
+    }
+
+    private class FeedObjectAdapter extends ArrayAdapter<Feed> {
+
+        protected Context mContext;
+        protected ArrayList<Feed> mItems;
+
+        protected ArrayList<String> original;
+
+        public FeedObjectAdapter(Context context, ArrayList<Feed> feeds) {
+            super(context, R.layout.menu_row, feeds);
+            mContext = context;
+            mItems = feeds;
+        }
+
+        public View getView(int position, View convertView, ViewGroup parent) {
+            if(convertView == null){
+                convertView = LayoutInflater.from(FeedView.this).inflate(R.layout.menu_row,null);
+            }
+            TextView feedNameview = ((TextView) convertView.findViewById(R.id.feedTitle));
+            ImageView feedIconview =((ImageView) convertView.findViewById(R.id.feedIcon));
+
+            feedNameview.setText(mItems.get(position).name);
+            if(mItems.get(position).name.equals("Your Feed")) {
+                feedIconview.setImageResource(R.drawable.home);
+            } else {
+                feedIconview.setImageResource(R.drawable.folder);
+            }
+
+            return convertView;
+        }
+
+    }
+
+
+    public void getArticles(int feedId) {
+        if (android.os.Build.VERSION.SDK_INT > 9) {
+            StrictMode.ThreadPolicy policy = new StrictMode.ThreadPolicy.Builder().permitAll().build();
+            StrictMode.setThreadPolicy(policy);
+        }
+        try {
+            HttpEntity resEntityGet = new HttpGetFeedArticles(sessionToken,userId).getArticles(feedId);
 
             listItems = new ArrayList<Article>();
             unreadItems = new ArrayList<Article>();
 
             if (resEntityGet != null) {
-                json = EntityUtils.toString(resEntityGet);
+                String json = EntityUtils.toString(resEntityGet);
 
                 try {
                     JSONObject jsonResponse = new JSONObject(json);
@@ -426,7 +475,9 @@ public class FeedView extends Activity {
 
         @Override
         protected String doInBackground(String... params) {
-            getArticles();
+            String feedId = params[0];
+            getArticles( Integer.parseInt(feedId) );
+            actualFeedId = Integer.parseInt(feedId);
             return "Executed";
         }
 
@@ -435,10 +486,10 @@ public class FeedView extends Activity {
             try {
                 listArticleAdapters = new ArticlesObjectAdapter(FeedView.this,listItems);
                 unreadArticleAdapters = new ArticlesObjectAdapter(FeedView.this,unreadItems);
-                mainListView.setAdapter(listArticleAdapters);
+                articleList.setAdapter(listArticleAdapters);
 
-                baar.setVisibility(View.GONE);
-                refresher.setRefreshing(false);
+                articleProgressBar.setVisibility(View.GONE);
+                articlesRefresher.setRefreshing(false);
             } catch (Exception r) {
                 r.printStackTrace();
             }
@@ -448,7 +499,6 @@ public class FeedView extends Activity {
         protected void onPreExecute() {
         }
     }
-
 
     private class ArticlesObjectAdapter extends ArrayAdapter<Article> {
 
