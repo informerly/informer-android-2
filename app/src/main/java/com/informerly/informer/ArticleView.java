@@ -229,35 +229,15 @@ public class ArticleView extends ActionBarActivity {
         try {
             HttpClient client = new DefaultHttpClient();
             client.getParams().setParameter(org.apache.http.params.CoreProtocolPNames.USER_AGENT, System.getProperty("http.agent"));
-            String getURL = "http://informerly.com/api/v1/feeds?auth_token=" + token + "&content=true";
-
-//            String getURL = "http://informerly.com/api/v1/links/" + articleid + "?auth_token=" + token;
+            String getURL = "https://informerly.com/api/v1/links/" + articleid + "?auth_token=" + token + "&content=true";
 
             HttpGet get = new HttpGet(getURL);
             HttpResponse responseGet = client.execute(get);
             resEntityGet = responseGet.getEntity();
             if (resEntityGet != null) {
-
-//                json = EntityUtils.toString(resEntityGet);
-//                JSONObject jsonResponse = new JSONObject(json);
-//                Object link = jsonResponse.getJSONObject("link");
-//                Log.d("MATIAS",link.toString());
-
                 json = EntityUtils.toString(resEntityGet);
-                JSONObject jsonResponse = new JSONObject(json);
-                JSONArray cast = jsonResponse.getJSONArray("links");
-
-                // Is totally necessary to load all zen content from server?
-                // I already have the article id that i need...
-                for(int index=0;index<=cast.length()-1;index++) {
-                    JSONObject jsonObject = cast.getJSONObject(index);
-                    String id = jsonObject.getString("id");
-
-                    if(id.equals(articleid)) {
-                        zenArticleContent = jsonObject.getString("content");
-                        break;
-                    }
-                }
+                JSONObject response = new JSONObject(json);
+                zenArticleContent = response.getJSONObject("link").getString("content");
             }
         }
         catch (Exception e) {
