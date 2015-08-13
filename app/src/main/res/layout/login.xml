@@ -37,7 +37,7 @@
         android:layout_height="wrap_content"
         android:id="@+id/info"
         android:layout_gravity="center_horizontal"
-        android:text="Industry news personalized for you."
+        android:text="@string/app_leyend"
         android:clickable="false"
         android:editable="false"
         android:textColor="#fffffef2"
@@ -68,7 +68,7 @@
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Email"
+            android:text="@string/app_email"
             android:id="@+id/mail"
             android:textColor="#ffffffff"
             android:layout_marginTop="10dp" />
@@ -101,7 +101,7 @@
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Password"
+            android:text="@string/app_pass"
             android:id="@+id/pass"
             android:textColor="#ffffffff"
             android:layout_marginTop="10dp" />
@@ -121,7 +121,7 @@
         android:layout_height="30dp"
         android:id="@+id/forgot"
         android:layout_gravity="center_horizontal"
-        android:text="Forgot Password?"
+        android:text="@string/app_forgot"
         android:paddingTop="1dp"
         android:paddingBottom="1dp"
         android:layout_alignParentBottom="true"
@@ -155,7 +155,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:textAppearance="?android:attr/textAppearanceLarge"
-        android:text="Sign In"
+        android:text="@string/app_signin"
         android:id="@+id/buttonSign"
         android:layout_gravity="right"
         android:textColor="#ffffffff"

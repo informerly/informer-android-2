@@ -17,7 +17,7 @@
 
         <RadioButton
             style="@style/filterButtonLeft"
-            android:text="All News"
+            android:text="@string/btn_filter_allnews"
             android:id="@+id/filterAllNewsRadioButton"
             android:onClick="filterAllNews"
             android:background="@drawable/filter_button_background"
@@ -27,7 +27,7 @@
 
         <RadioButton
             style="@style/filterButtonRight"
-            android:text="Unread"
+            android:text="@string/btn_filter_unreadnews"
             android:id="@+id/filterUnreadRadioButton"
             android:onClick="filterUnreadNews"
             android:background="@drawable/filter_button_background"
