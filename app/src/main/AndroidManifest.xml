@@ -48,6 +48,12 @@
             android:screenOrientation="portrait"
             android:theme="@style/Theme.AppCompat.Light.NoActionBar">
         </activity>
+        <activity
+            android:name="com.informerly.informer.Preferences"
+            android:screenOrientation="portrait"
+            android:label="Your Settings"
+            android:theme="@style/MyAppTheme">
+        </activity>
 
         <service android:name="com.parse.PushService" />
 
