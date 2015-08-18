@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <CheckBoxPreference
+        android:key="zenViewPreference"
+        android:title="@string/pref_zen"
+        android:summary="@string/pref_zen_summary"
+        android:defaultValue="false" />
+
+    <CheckBoxPreference
+        android:key="filterUnreadPreference"
+        android:title="@string/pref_unread"
+        android:summary="@string/pref_unread_summary"
+        android:defaultValue="false" />
+
+</PreferenceScreen>
