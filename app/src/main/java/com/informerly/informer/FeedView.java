@@ -18,18 +18,20 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.view.inputmethod.InputMethodManager;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
-import android.widget.EditText;
-import android.widget.GridLayout;
+import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ListView;
 import android.widget.ProgressBar;
+import android.widget.RadioButton;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
 import android.widget.Toast;
+
+import android.preference.PreferenceManager;
+import android.content.SharedPreferences;
 
 import android.support.v7.app.ActionBarDrawerToggle;
 import android.support.v7.widget.Toolbar;
@@ -38,7 +40,6 @@ import org.apache.http.HttpEntity;
 import org.apache.http.util.EntityUtils;
 import org.json.JSONArray;
 import org.json.JSONObject;
-import org.w3c.dom.Text;
 
 import java.util.ArrayList;
 
@@ -53,16 +54,16 @@ public class FeedView extends ActionBarActivity {
     private String sessionToken, userId,useremail;
     private DrawerLayout drawerAppContent;
 
-    private ListView articleList, feedsListView;
+    private ListView articlesList, feedsListView;
     private SwipeRefreshLayout articlesRefresher, feedsRefresher;
 
     private ProgressBar articleProgressBar;
 
-    private ArrayList<Article> listItems, unreadItems;
+    private ArrayList<Article> allArticlesArray, unreadArticlesArray;
     private ArrayList<Feed> feedItems;
     private RelativeLayout feedsMenu;
 
-    private ArrayAdapter<Article> listArticleAdapters, unreadArticleAdapters;
+    private ArrayAdapter<Article> allArticlesAdapters, unreadArticlesAdapters;
     private ArrayAdapter<Feed> listFeedsAdapters;
 
     private static Context mContext;
@@ -73,6 +74,8 @@ public class FeedView extends ActionBarActivity {
     private TextView headerTitle;
 
     private int actualFeedId;
+
+    private boolean defaultUnreadPreference;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -106,21 +109,22 @@ public class FeedView extends ActionBarActivity {
         feedsListView = (ListView) findViewById(R.id.feedMenuList);
 
         // Preparing articles list
-        articleList = (ListView)findViewById(R.id.article_list);
-        articleList = (ListView) findViewById(R.id.article_list);
-        articleList.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+        articlesList = (ListView)findViewById(R.id.article_list);
+        articlesList.setOnItemClickListener(new AdapterView.OnItemClickListener() {
 
             public void onItemClick(AdapterView<?> parent, View view, int position, long iid) {
 
+                Article selectedArticle = (Article) parent.getAdapter().getItem(position);
+
                 // reading article actions
-                new markReadedArticleTask().execute(String.valueOf(listItems.get(position - 1).id));
-                unreadItems.remove(listItems.get(position - 1));
+                new markReadedArticleTask().execute(String.valueOf(selectedArticle.id));
+                unreadArticlesArray.remove(selectedArticle);
+                allArticlesArray.get(allArticlesArray.indexOf(selectedArticle)).read = true;
 
                 Intent i = new Intent(FeedView.this, ArticleView.class);
-                i.putExtra("Uurl", listItems.get(position-1).url);
-                i.putExtra("Ttitle", listItems.get(position-1).title);
-                i.putExtra("feedid", String.valueOf(listItems.get(position-1).id));
-
+                i.putExtra("articleUrl", selectedArticle.url);
+                i.putExtra("articleTitle", selectedArticle.title);
+                i.putExtra("articleId", String.valueOf(selectedArticle.id));
                 i.putExtra("token", sessionToken);
                 i.putExtra("userid", userId);
                 startActivity(i);
@@ -129,7 +133,7 @@ public class FeedView extends ActionBarActivity {
 
         // Adding articles filters at top of list
         LinearLayout topButtons = (LinearLayout)getLayoutInflater().inflate(R.layout.action_row, null);
-        articleList.addHeaderView(topButtons);
+        articlesList.addHeaderView(topButtons);
 
         // Articles refresher list action
         articlesRefresher = (SwipeRefreshLayout) findViewById(R.id.swipeArticlesRefresher);
@@ -178,6 +182,19 @@ public class FeedView extends ActionBarActivity {
         new feedTask().execute("0");
         new userFeedsTask().execute("");
 
+        // Getting user preferences
+        SharedPreferences SP = PreferenceManager.getDefaultSharedPreferences(getBaseContext());
+        defaultUnreadPreference = SP.getBoolean("filterUnreadPreference", false);
+
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        if(allArticlesAdapters != null && unreadArticlesAdapters != null) {
+            unreadArticlesAdapters.notifyDataSetChanged();
+            allArticlesAdapters.notifyDataSetChanged();
+        }
     }
 
     public static Context getContext(){
@@ -190,7 +207,13 @@ public class FeedView extends ActionBarActivity {
             StrictMode.setThreadPolicy(policy);
         }
         try {
-            new MarkRead(sessionToken,userId,articleid).mark();
+            HttpEntity resEntityGet = new MarkRead(sessionToken,userId,articleid).mark();
+
+            if (resEntityGet != null) {
+                String json = EntityUtils.toString(resEntityGet);
+            } else {
+                Toast.makeText(FeedView.this,"Connection non response",Toast.LENGTH_SHORT).show();
+            }
         } catch (Exception e) {
             Toast.makeText(FeedView.this,"Connection error",Toast.LENGTH_SHORT).show();
         }
@@ -208,6 +231,7 @@ public class FeedView extends ActionBarActivity {
             {
                 Toast.makeText(FeedView.this,"Connection error",Toast.LENGTH_SHORT).show();
             }
+
             return "Executed";
         }
 
@@ -219,7 +243,6 @@ public class FeedView extends ActionBarActivity {
         protected void onPreExecute() {
         }
     }
-
 
     public void say_hello(View v) {
         Log.d("Just test", "hello there!");
@@ -235,11 +258,11 @@ public class FeedView extends ActionBarActivity {
     }
 
     public void filterAllNews(View v) {
-        articleList.setAdapter(listArticleAdapters);
+        articlesList.setAdapter(allArticlesAdapters);
     }
 
     public void filterUnreadNews(View v) {
-        articleList.setAdapter(unreadArticleAdapters);
+        articlesList.setAdapter(unreadArticlesAdapters);
     }
 
 
@@ -266,7 +289,16 @@ public class FeedView extends ActionBarActivity {
 //        startActivity(Email);
 //    }
 
-    public void logout_Me(View v) {
+    public void goSettings(View v) {
+        Intent i = new Intent(this, Preferences.class);
+        startActivity(i);
+    }
+
+    public void goHelp(View v) {
+        Log.d("Debug", "Help me please!");
+    }
+
+    public void goLogout(View v) {
 
         boolean iff = isNetworkAvailable();
         if (iff) {
@@ -432,7 +464,6 @@ public class FeedView extends ActionBarActivity {
 
     }
 
-
     public void getArticles(int feedId) {
         if (android.os.Build.VERSION.SDK_INT > 9) {
             StrictMode.ThreadPolicy policy = new StrictMode.ThreadPolicy.Builder().permitAll().build();
@@ -441,8 +472,8 @@ public class FeedView extends ActionBarActivity {
         try {
             HttpEntity resEntityGet = new HttpGetFeedArticles(sessionToken,userId).getArticles(feedId);
 
-            listItems = new ArrayList<Article>();
-            unreadItems = new ArrayList<Article>();
+            allArticlesArray = new ArrayList<Article>();
+            unreadArticlesArray = new ArrayList<Article>();
 
             if (resEntityGet != null) {
                 String json = EntityUtils.toString(resEntityGet);
@@ -454,10 +485,10 @@ public class FeedView extends ActionBarActivity {
                     for(int index = 0; index < jsonArticles.length(); index++) {
 
                         Article newItem = new Article( jsonArticles.getJSONObject(index) );
-                        listItems.add( newItem );
+                        allArticlesArray.add( newItem );
 
                         if(!newItem.read) {
-                            unreadItems.add(newItem);
+                            unreadArticlesArray.add(newItem);
                         }
 
                     }
@@ -484,9 +515,16 @@ public class FeedView extends ActionBarActivity {
         @Override
         protected void onPostExecute(String result) {
             try {
-                listArticleAdapters = new ArticlesObjectAdapter(FeedView.this,listItems);
-                unreadArticleAdapters = new ArticlesObjectAdapter(FeedView.this,unreadItems);
-                articleList.setAdapter(listArticleAdapters);
+                allArticlesAdapters = new ArticlesObjectAdapter(FeedView.this,allArticlesArray);
+                unreadArticlesAdapters = new ArticlesObjectAdapter(FeedView.this,unreadArticlesArray);
+
+                if(defaultUnreadPreference) {
+                    RadioButton unreadFilterBtn = (RadioButton) findViewById(R.id.filterUnreadRadioButton);
+                    unreadFilterBtn.setChecked(true);
+                    articlesList.setAdapter(unreadArticlesAdapters);
+                } else {
+                    articlesList.setAdapter(allArticlesAdapters);
+                }
 
                 articleProgressBar.setVisibility(View.GONE);
                 articlesRefresher.setRefreshing(false);
