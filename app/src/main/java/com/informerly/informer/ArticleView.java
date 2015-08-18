@@ -1,9 +1,11 @@
 package com.informerly.informer;
 
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.graphics.Color;
 import android.os.AsyncTask;
 import android.os.StrictMode;
+import android.preference.PreferenceManager;
 import android.support.v7.app.ActionBarActivity;
 import android.os.Bundle;
 import android.view.View;
@@ -21,25 +23,21 @@ import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.impl.client.DefaultHttpClient;
 import org.apache.http.util.EntityUtils;
-import org.json.JSONArray;
 import org.json.JSONObject;
 
-import android.util.Log;
-
-import com.informerly.informer.APICalls.MarkRead;
-
-import com.informerly.informer.R;
 
 public class ArticleView extends ActionBarActivity {
     
     WebView webView,zenView;
     Button viewZenButton,viewWebButton;
-    String url, titles,id,token,articleid,json,zenArticleContent;
+    String articleUrl, articleTitle, userId, sesionToken, articleid, json, zenArticleContent;
     ProgressBar webViewProgressBar,zenViewProgressBar;
     HttpEntity resEntityGet;
     LinearLayout switchToZenView;
 
     boolean onZenView = false;
+    boolean webViewLoading = false;
+    boolean zenViewLoading = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -48,11 +46,11 @@ public class ArticleView extends ActionBarActivity {
         Intent intent = getIntent();
 
         // get article params
-        url = intent.getStringExtra("Uurl");
-        titles = intent.getStringExtra("Ttitle");
-        id = intent.getStringExtra("userid");
-        token = intent.getStringExtra("token");
-        articleid = intent.getStringExtra("feedid");
+        articleid = intent.getStringExtra("articleId");
+        articleUrl = intent.getStringExtra("articleUrl");
+        articleTitle = intent.getStringExtra("articleTitle");
+        userId = intent.getStringExtra("userid");
+        sesionToken = intent.getStringExtra("token");
 
         webView = (WebView) findViewById(R.id.webview);
         zenView = (WebView) findViewById(R.id.webviewZen);
@@ -76,12 +74,21 @@ public class ArticleView extends ActionBarActivity {
 
         webView.setWebViewClient(new MyWebViewClient());
         zenView.setWebViewClient(new ZenWebViewClient());
+        
 
-        executeZen();
-//        executeWeb();
+        // Getting user preferences
+        SharedPreferences SP = PreferenceManager.getDefaultSharedPreferences(getBaseContext());
+        Boolean defaultZenPreference = SP.getBoolean("zenViewPreference", false);
 
-        // set html view by default
-        webView.loadUrl(url);
+        if(defaultZenPreference) {
+            executeZen();
+            openZenView(this.findViewById(android.R.id.content));
+        } else {
+            // set html view by default
+            webView.loadUrl(articleUrl);
+            openWebView(this.findViewById(android.R.id.content));
+        }
+
     }
 
     public class MyWebViewClient extends WebViewClient {
@@ -89,6 +96,7 @@ public class ArticleView extends ActionBarActivity {
         @Override
         public boolean shouldOverrideUrlLoading(WebView view, String url) {
             view.loadUrl(url);
+            webViewLoading = true;
             return true;
         }
 
@@ -107,7 +115,6 @@ public class ArticleView extends ActionBarActivity {
             webViewProgressBar.setProgress(newProgress);
 
             if(!onZenView && webView.getVisibility() != View.VISIBLE && newProgress >= 90) {
-
                 if(switchToZenView.getVisibility() == View.VISIBLE) {
                     switchToZenView.setVisibility(View.GONE);
                 }
@@ -143,25 +150,8 @@ public class ArticleView extends ActionBarActivity {
         }
     }
 
-    // think we'll will use this when users click over a list row...
-    public void executeWeb() {
-        new loadWebPageTask().execute("");
-    }
-
     public void executeZen() {
         new loadZenPageTask().execute("");
-    }
-
-    public void readArticle(){
-        if (android.os.Build.VERSION.SDK_INT > 9) {
-            StrictMode.ThreadPolicy policy = new StrictMode.ThreadPolicy.Builder().permitAll().build();
-            StrictMode.setThreadPolicy(policy);
-        }
-        try {
-            new MarkRead( token, id, articleid).mark();
-        } catch (Exception e) {
-            Toast.makeText(ArticleView.this,"Connection error",Toast.LENGTH_SHORT).show();
-        }
     }
 
     public void back_Me(View v) {
@@ -171,12 +161,16 @@ public class ArticleView extends ActionBarActivity {
     public void share_Me(View v) {
         Intent sharingIntent = new Intent(Intent.ACTION_SEND);
         sharingIntent.setType("text/plain");
-        sharingIntent.putExtra(android.content.Intent.EXTRA_TEXT, titles + " " + url);
+        sharingIntent.putExtra(android.content.Intent.EXTRA_TEXT, articleTitle + " " + articleUrl);
         sharingIntent.putExtra(android.content.Intent.EXTRA_SUBJECT, "Subject");
         startActivity(Intent.createChooser(sharingIntent, "Share using"));
     }
 
     public void openWebView(View v) {
+
+        if(!webViewLoading) {
+            webView.loadUrl(articleUrl);
+        }
 
         if(zenView.getVisibility() == View.VISIBLE) {
             zenView.setVisibility(View.GONE);
@@ -199,6 +193,10 @@ public class ArticleView extends ActionBarActivity {
     }
 
     public void openZenView(View v) {
+
+        if(!zenViewLoading) {
+            executeZen();
+        }
 
         if(webView.getVisibility() == View.VISIBLE) {
             webView.setVisibility(View.GONE);
@@ -229,7 +227,7 @@ public class ArticleView extends ActionBarActivity {
         try {
             HttpClient client = new DefaultHttpClient();
             client.getParams().setParameter(org.apache.http.params.CoreProtocolPNames.USER_AGENT, System.getProperty("http.agent"));
-            String getURL = "https://informerly.com/api/v1/links/" + articleid + "?auth_token=" + token + "&content=true";
+            String getURL = "https://informerly.com/api/v1/links/" + articleid + "?auth_token=" + sesionToken + "&content=true";
 
             HttpGet get = new HttpGet(getURL);
             HttpResponse responseGet = client.execute(get);
@@ -245,31 +243,7 @@ public class ArticleView extends ActionBarActivity {
         }
     }
 
-    private class loadWebPageTask extends AsyncTask<String, Void, String> {
-        //ProgressDialog dilog;
-        @Override
-        protected String doInBackground(String... params) {
-            try {
-                readArticle();
-            }
-            catch(Exception e)
-            {
-                Toast.makeText(ArticleView.this,"Connection error",Toast.LENGTH_SHORT).show();
-            }
-            return "Executed";
-        }
-
-        @Override
-        protected void onPostExecute(String result) {
-        }
-
-        @Override
-        protected void onPreExecute() {
-        }
-    }
-
     private class loadZenPageTask extends AsyncTask<String, Void, String> {
-        //ProgressDialog dilog;
         @Override
         protected String doInBackground(String... params) {
             
