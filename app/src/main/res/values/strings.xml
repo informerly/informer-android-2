@@ -23,7 +23,9 @@
 
     <!--preferences-->
     <string name="pref_zen">Default Zen View</string>
+    <string name="pref_zen_summary">Activate to read all articles in Zen View by default.</string>
     <string name="pref_unread">Default unread articles</string>
+    <string name="pref_unread_summary">Activate to filter just unread articles in your feed.</string>
 
     <!--menu-->
     <string name="action_settings">Settings</string>
