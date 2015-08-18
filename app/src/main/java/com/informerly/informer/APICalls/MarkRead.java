@@ -1,5 +1,8 @@
 package com.informerly.informer.APICalls;
 
+import android.util.Log;
+
+import org.apache.http.HttpEntity;
 import org.apache.http.NameValuePair;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.entity.UrlEncodedFormEntity;
@@ -15,26 +18,26 @@ import java.util.List;
 public class MarkRead {
     String token, id, articleid;
     static String baseurl ;
+    HttpEntity resEntity = null;
+
     public MarkRead(String tooken, String userid, String feedid) {
         this.token = tooken;
         this.id = userid;
         this.articleid = feedid;
-        baseurl = "https://informerly.com/api/v1/links/"+articleid+"/read";
+        baseurl = "https://informerly.com/api/v1/links/"+articleid+"/read?auth_token=" + token + "&client_id=" + id;
     }
 
-    public void mark() {
+    public HttpEntity mark() {
         try {
             HttpClient client = new DefaultHttpClient();
             client.getParams().setParameter(org.apache.http.params.CoreProtocolPNames.USER_AGENT, System.getProperty("http.agent"));
             HttpPost post = new HttpPost(baseurl);
-            List<NameValuePair> params = new ArrayList<NameValuePair>();
-            params.add(new BasicNameValuePair("auth_token",token));
-            params.add(new BasicNameValuePair("client_id", id));
-            UrlEncodedFormEntity ent = new UrlEncodedFormEntity(params, HTTP.UTF_8);
-            post.setEntity(ent);
             HttpResponse response = client.execute(post);
+            resEntity = response.getEntity();
+            return resEntity;
 
         } catch (Exception e) {
+            return null;
         }
     }
 }
