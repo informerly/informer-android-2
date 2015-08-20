@@ -36,6 +36,13 @@ import android.content.SharedPreferences;
 import android.support.v7.app.ActionBarDrawerToggle;
 import android.support.v7.widget.Toolbar;
 
+import android.view.MenuItem;
+import android.view.MenuInflater;
+
+import android.view.ContextMenu;
+import android.view.ContextMenu.ContextMenuInfo;
+import android.widget.AdapterView.AdapterContextMenuInfo;
+
 import org.apache.http.HttpEntity;
 import org.apache.http.util.EntityUtils;
 import org.json.JSONArray;
@@ -131,6 +138,9 @@ public class FeedView extends ActionBarActivity {
             }
         });
 
+        // Registering contextual menu with in feed actions for each article
+        registerForContextMenu(articlesList);
+
         // Adding articles filters at top of list
         LinearLayout topButtons = (LinearLayout)getLayoutInflater().inflate(R.layout.action_row, null);
         articlesList.addHeaderView(topButtons);
@@ -194,6 +204,55 @@ public class FeedView extends ActionBarActivity {
         if(allArticlesAdapters != null && unreadArticlesAdapters != null) {
             unreadArticlesAdapters.notifyDataSetChanged();
             allArticlesAdapters.notifyDataSetChanged();
+        }
+    }
+
+    @Override
+    public void onCreateContextMenu(ContextMenu menu, View v,
+                                    ContextMenuInfo menuInfo) {
+        super.onCreateContextMenu(menu, v, menuInfo);
+        MenuInflater inflater = getMenuInflater();
+        inflater.inflate(R.menu.feed_items_menu, menu);
+
+        AdapterContextMenuInfo info = (AdapterContextMenuInfo) menuInfo;
+        Article selectedArticle = (Article) articlesList.getAdapter().getItem( info.position );
+
+        if(selectedArticle.read) {
+            menu.findItem(R.id.menu_read).setTitle("Mark article as unread");
+        } else {
+            menu.findItem(R.id.menu_read).setTitle("Mark article as read");
+        }
+    }
+
+
+    @Override
+    public boolean onContextItemSelected(MenuItem item) {
+
+        AdapterContextMenuInfo info = (AdapterContextMenuInfo) item.getMenuInfo();
+        Article selectedArticle = (Article) articlesList.getAdapter().getItem(info.position);
+
+        switch (item.getItemId()) {
+            case R.id.menu_read:
+                // reading article actions
+                new markReadArticleTask().execute(String.valueOf(selectedArticle.id), String.valueOf(selectedArticle.read));
+                unreadArticlesArray.remove(selectedArticle);
+                allArticlesArray.get(allArticlesArray.indexOf(selectedArticle)).read = !allArticlesArray.get(allArticlesArray.indexOf(selectedArticle)).read;
+                unreadArticlesAdapters.notifyDataSetChanged();
+                allArticlesAdapters.notifyDataSetChanged();
+
+                return true;
+            case R.id.menu_save:
+//                    shareCurrentItem();
+                Log.d("MATIAS","share this dude, pos=" + info.position);
+                return true;
+
+            case R.id.menu_share:
+                shareArticle(selectedArticle.title, selectedArticle.url);
+                return true;
+
+            default:
+                return super.onContextItemSelected(item);
+
         }
     }
 
