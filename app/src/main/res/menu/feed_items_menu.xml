@@ -1,4 +1,23 @@
 <?xml version="1.0" encoding="utf-8"?>
-<menu xmlns:android="http://schemas.android.com/apk/res/android">
+<menu
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    tools:context=".FeedView">
+
+    <item
+        android:id="@+id/menu_read"
+        android:title="Mark article as read"
+        app:showAsAction="never"/>
+
+    <item
+        android:id="@+id/menu_save"
+        android:title="Save in Bookmarks"
+        app:showAsAction="never"/>
+
+    <item
+        android:id="@+id/menu_share"
+        android:title="Share Article"
+        app:showAsAction="never"/>
 
 </menu>
