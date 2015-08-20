@@ -305,6 +305,14 @@ public class FeedView extends ActionBarActivity {
         }
     }
 
+    public void shareArticle(String articleTitle, String articleUrl) {
+        Intent sharingIntent = new Intent(Intent.ACTION_SEND);
+        sharingIntent.setType("text/plain");
+        sharingIntent.putExtra(android.content.Intent.EXTRA_TEXT, articleTitle + " " + articleUrl);
+        sharingIntent.putExtra(android.content.Intent.EXTRA_SUBJECT, "Subject");
+        startActivity(Intent.createChooser(sharingIntent, "Share using"));
+    }
+    
     public void say_hello(View v) {
         Log.d("Just test", "hello there!");
     }
