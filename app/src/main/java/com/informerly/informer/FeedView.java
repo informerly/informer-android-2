@@ -20,7 +20,6 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
-import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ListView;
@@ -58,7 +57,7 @@ import com.informerly.informer.APICalls.MarkRead;
 
 public class FeedView extends ActionBarActivity {
 
-    private String sessionToken, userId,useremail;
+    private String sessionToken, userId, useremail;
     private DrawerLayout drawerAppContent;
 
     private ListView articlesList, feedsListView;
@@ -84,6 +83,7 @@ public class FeedView extends ActionBarActivity {
 
     private boolean defaultUnreadPreference;
 
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
 
@@ -106,7 +106,7 @@ public class FeedView extends ActionBarActivity {
 
         // get the app header tittle
         headerTitle = (TextView) findViewById(R.id.app_header_title);
-        
+
         // Setting up application Toolbar
         Toolbar actionBarToolbar = (Toolbar) findViewById(R.id.app_toolbar);
         setSupportActionBar(actionBarToolbar);
@@ -119,14 +119,14 @@ public class FeedView extends ActionBarActivity {
         articlesList = (ListView)findViewById(R.id.article_list);
         articlesList.setOnItemClickListener(new AdapterView.OnItemClickListener() {
 
-            public void onItemClick(AdapterView<?> parent, View view, int position, long iid) {
+            public void onItemClick(AdapterView<?> listview, View view, int pos, long id) {
 
-                Article selectedArticle = (Article) parent.getAdapter().getItem(position);
+                Article selectedArticle = (Article) listview.getAdapter().getItem(pos);
 
                 // reading article actions
-                new markReadedArticleTask().execute(String.valueOf(selectedArticle.id));
+                new markReadArticleTask().execute(String.valueOf(selectedArticle.id), String.valueOf(selectedArticle.read));
                 unreadArticlesArray.remove(selectedArticle);
-                allArticlesArray.get(allArticlesArray.indexOf(selectedArticle)).read = true;
+                allArticlesArray.get(allArticlesArray.indexOf(selectedArticle)).read = !allArticlesArray.get(allArticlesArray.indexOf(selectedArticle)).read;
 
                 Intent i = new Intent(FeedView.this, ArticleView.class);
                 i.putExtra("articleUrl", selectedArticle.url);
@@ -153,7 +153,7 @@ public class FeedView extends ActionBarActivity {
                 new feedTask().execute(Integer.toString(actualFeedId));
             }
         });
-        
+
         // Feeds refresher list action
         feedsRefresher = (SwipeRefreshLayout) findViewById(R.id.swipeFeedsRefresher);
         feedsRefresher.setOnRefreshListener(new SwipeRefreshLayout.OnRefreshListener() {
@@ -162,7 +162,7 @@ public class FeedView extends ActionBarActivity {
                 new userFeedsTask().execute("");
             }
         });
-        
+
 
 //        mDrawerToggle = new ActionBarDrawerToggle(
 //                this,                  /* host Activity */
@@ -186,7 +186,7 @@ public class FeedView extends ActionBarActivity {
 //                Log.d("debug","Menu Opened");
 //            }
 //        };
-        
+
 
         // Starting app, getting default feed
         new feedTask().execute("0");
@@ -260,13 +260,14 @@ public class FeedView extends ActionBarActivity {
         return mContext;
     }
 
-    public void readArticle(String articleid) {
+    public void markArticle(String articleId, Boolean read) {
+
         if (android.os.Build.VERSION.SDK_INT > 9) {
             StrictMode.ThreadPolicy policy = new StrictMode.ThreadPolicy.Builder().permitAll().build();
             StrictMode.setThreadPolicy(policy);
         }
         try {
-            HttpEntity resEntityGet = new MarkRead(sessionToken,userId,articleid).mark();
+            HttpEntity resEntityGet = new MarkRead(sessionToken,userId,articleId,read).mark();
 
             if (resEntityGet != null) {
                 String json = EntityUtils.toString(resEntityGet);
@@ -278,13 +279,14 @@ public class FeedView extends ActionBarActivity {
         }
     }
 
-    private class markReadedArticleTask extends AsyncTask<String, Void, String> {
+    private class markReadArticleTask extends AsyncTask<String, Void, String> {
         //ProgressDialog dilog;
         @Override
         protected String doInBackground(String... params) {
             try {
                 String articleId = params[0];
-                readArticle(articleId);
+                Boolean isRead = Boolean.valueOf(params[1]);
+                markArticle(articleId, isRead);
             }
             catch(Exception e)
             {
