@@ -20,11 +20,16 @@ public class MarkRead {
     static String baseurl ;
     HttpEntity resEntity = null;
 
-    public MarkRead(String tooken, String userid, String feedid) {
+    public MarkRead(String tooken, String userid, String feedid, Boolean read) {
         this.token = tooken;
         this.id = userid;
         this.articleid = feedid;
-        baseurl = "https://informerly.com/api/v1/links/"+articleid+"/read?auth_token=" + token + "&client_id=" + id;
+
+        if(read) {
+            baseurl = "https://informerly.com/api/v1/links/"+articleid+"/mark_as_unread?auth_token=" + token + "&client_id=" + id;
+        } else {
+            baseurl = "https://informerly.com/api/v1/links/"+articleid+"/read?auth_token=" + token + "&client_id=" + id;
+        }
     }
 
     public HttpEntity mark() {
