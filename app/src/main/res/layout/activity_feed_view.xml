@@ -103,7 +103,8 @@
                         tools:listitem="@layout/row"
                         android:divider="@null"
                         android:clickable="true"
-                        android:background="#FFF">
+                        android:background="#FFF"
+                        android:longClickable="true">
                     </ListView>
 
                 </android.support.v4.widget.SwipeRefreshLayout>
