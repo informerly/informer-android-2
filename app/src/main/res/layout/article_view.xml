@@ -1,207 +1,169 @@
-<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:tools="http://schemas.android.com/tools" android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    tools:context="com.informerly.informer.ArticleView">
+<RelativeLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    tools:context="com.informerly.informer.ArticleView"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent" >
 
-    <FrameLayout
-        android:id="@+id/frame"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:background="#FFF">
+    <android.support.v7.widget.Toolbar
+        xmlns:android="http://schemas.android.com/apk/res/android"
+        android:id="@+id/app_toolbar"
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:minHeight="50dp"
+        android:background="#ffffffff"
+        app:contentInsetLeft="0dp"
+        app:contentInsetStart="0dp"
+        >
 
-        <GridLayout
+        <LinearLayout
             android:layout_width="fill_parent"
             android:layout_height="50dp"
             android:layout_alignParentTop="true"
             android:layout_alignParentLeft="true"
             android:layout_alignParentStart="true"
+            android:layout_marginTop="5dp"
             android:background="#FFF"
-            android:id="@+id/gridLayout">
-
+            android:orientation="horizontal"
+            android:id="@+id/header_layout"
+            android:gravity="center_vertical">
 
             <ImageView
-                android:layout_width="65dp"
-                android:layout_height="20dp"
-                android:id="@+id/back"
-                android:layout_row="1"
-                android:layout_column="0"
-                android:src="@drawable/back"
-                android:layout_columnSpan="16"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:id="@+id/returnToFeed"
+                android:src="@drawable/ic_navigate_before_black_48dp"
                 android:onClick="back_Me"
-                android:layout_marginLeft="0dp"
-                android:layout_marginTop="8dp"
-                android:layout_marginBottom="15dp" />
+                android:layout_marginLeft="10dp"
+                android:layout_marginStart="10dp"
+                android:contentDescription="Return to feed"
+                android:tint="#BBB" />
 
-            <TextView
-                android:layout_width="60dp"
-                android:layout_height="45dp"
-                android:id="@+id/textView2"
-                android:layout_row="1"
-                android:layout_column="15"
-                android:clickable="true"
-                android:onClick="back_Me" />
-            <LinearLayout
-                android:layout_width="63dp"
-                android:layout_height="30dp"
-                android:background="#FF3B9EFC"
-                android:layout_row="1"
-                android:layout_column="17"
-                android:layout_gravity="center"
-                android:layout_marginLeft="60dp"
-                android:layout_marginBottom="10dp"
-                android:layout_columnSpan="6"
-                android:padding="2dp">
-                <Button
-                    android:layout_width="60dp"
-                    android:layout_height="27dp"
-                    android:background="#ff000000"
+            <RadioGroup
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation='horizontal'
+                android:layout_marginLeft="50dp"
+                android:layout_marginStart="50dp">
+
+                <RadioButton
+                    style="@style/switchViewButtonLeft"
+                    android:text="Web"
+                    android:id="@+id/web"
+                    android:onClick="openWebView"
+                    android:background="@drawable/switch_view_button_background"
+                    android:textColor="@drawable/switch_view_button_text"
+                    android:button="@android:color/transparent"
+                    android:checked="true"/>
+
+                <RadioButton
+                    style="@style/switchViewButtonRight"
+                    android:text="Zen"
                     android:id="@+id/zen"
                     android:onClick="openZenView"
-                    android:text="zen"
+                    android:background="@drawable/switch_view_button_background"
+                    android:textColor="@drawable/switch_view_button_text"
+                    android:button="@android:color/transparent"
+                    android:layout_marginLeft="-7dp"
+                    android:layout_marginStart="-6dp" />
+            </RadioGroup>
 
-                    android:textColor="#ffffffff"
-                    android:gravity="center"
-                    android:clickable="true" />
-            </LinearLayout>
+        </LinearLayout>
 
+    </android.support.v7.widget.Toolbar>
 
-            <LinearLayout
-                android:layout_width="63dp"
-                android:layout_height="30dp"
-                android:background="#FF3B9EFC"
-                android:layout_row="1"
-                android:layout_column="17"
-                android:layout_gravity="center"
-                android:layout_marginRight="60dp"
-                android:layout_marginBottom="10dp"
-                android:layout_columnSpan="6"
-                android:padding="2dp"
-                >
-                <!--FF3B9EFC   #ff000000-->
-                <Button
-                    android:layout_width="60dp"
-                    android:layout_height="27dp"
-                    android:background="#FF3B9EFC"
+    <GridLayout
+        android:layout_width="fill_parent"
+        android:layout_height="fill_parent"
+        android:layout_alignParentLeft="true"
+        android:layout_alignParentStart="true"
+        android:id="@+id/webviews"
+        android:layout_marginTop="55dp"
+        android:background="#FFF">
 
-                    android:id="@+id/web"
-                    android:layout_row="1"
-                    android:layout_column="15"
-                    android:onClick="openWebView"
-                    android:text="web"
+        <ProgressBar
+            android:id="@+id/progressBar"
+            style="?android:attr/progressBarStyleHorizontal"
+            android:layout_width="fill_parent"
+            android:layout_height="wrap_content"
+            android:layout_below="@id/webviews"
+            android:layout_row="0"
+            android:layout_column="0"
+            android:background="#FFF"
+            android:progressTint="#6599FF"
+            />
 
-                    android:textColor="#ffffffff"
-                    android:gravity="center"
-                    android:clickable="true" />
-            </LinearLayout>
-
-
-            <ImageView
-                android:layout_width="60dp"
-                android:layout_height="25dp"
-                android:id="@+id/share"
-                android:layout_row="1"
-                android:layout_column="23"
-                android:src="@drawable/share"
-                android:onClick="share_Me"
-                android:layout_marginTop="4dp"
-                android:layout_marginBottom="15dp"
-                android:layout_marginRight="15dp" />
-
-
-        </GridLayout>
-
-    </FrameLayout>
-
-        <GridLayout
+        <WebView
             android:layout_width="fill_parent"
             android:layout_height="fill_parent"
             android:layout_alignParentLeft="true"
             android:layout_alignParentStart="true"
-            android:id="@+id/webviews"
-            android:layout_marginTop="50dp"
+            android:id="@+id/webview"
+            android:visibility="gone"
             android:background="#FFF">
 
-            <ProgressBar
-                android:id="@+id/progressBar"
-                style="?android:attr/progressBarStyleHorizontal"
-                android:layout_width="fill_parent"
+        </WebView>
+
+        <ProgressBar
+            android:id="@+id/progressBarZen"
+            style="?android:attr/progressBarStyleHorizontal"
+            android:layout_width="fill_parent"
+            android:layout_height="wrap_content"
+            android:layout_below="@id/webviews"
+            android:layout_row="0"
+            android:layout_column="0"
+            android:background="#FFF"
+            android:progressTint="#6599FF"
+            android:visibility="gone"
+            />
+
+        <LinearLayout
+            android:id="@+id/switchToZenView"
+            android:orientation="vertical"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:layout_row="1"
+            android:layout_column="0"
+            android:gravity="center_vertical|center_horizontal"
+            android:background="#FFF">
+
+            <ImageView
+                android:layout_width="180dp"
                 android:layout_height="wrap_content"
-                android:layout_below="@id/webviews"
+                android:id="@+id/imageView"
+                android:layout_gravity="center"
                 android:layout_row="0"
-                android:layout_column="0"
-                android:background="#FFF"
-                android:progressTint="#6599FF"
-                />
+                android:src="@drawable/zen_cloud"
+                android:layout_marginBottom="2dp"/>
 
-            <WebView
-                android:layout_width="fill_parent"
-                android:layout_height="fill_parent"
-                android:layout_alignParentLeft="true"
-                android:layout_alignParentStart="true"
-                android:id="@+id/webview"
-                android:visibility="gone"
-                android:background="#FFF">
-
-            </WebView>
-
-            <ProgressBar
-                android:id="@+id/progressBarZen"
-                style="?android:attr/progressBarStyleHorizontal"
-                android:layout_width="fill_parent"
+            <Button
+                android:id="@+id/viewZenModeButton"
+                android:layout_width="180dp"
                 android:layout_height="wrap_content"
-                android:layout_below="@id/webviews"
-                android:layout_row="0"
-                android:layout_column="0"
-                android:background="#FFF"
-                android:progressTint="#6599FF"
-                android:visibility="gone"
-                />
-
-            <LinearLayout
-                android:id="@+id/switchToZenView"
-                android:orientation="vertical"
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
+                android:text="@string/btn_zenview"
+                android:layout_gravity="center"
+                android:gravity="center_vertical|center|center_horizontal"
+                android:onClick="openZenView"
                 android:layout_row="1"
-                android:layout_column="0"
-                android:gravity="center_vertical|center_horizontal"
-                android:background="#FFF">
+                android:background="@drawable/btn_zen_view"
+                android:textColor="#6599FF"
+                />
 
-                <ImageView
-                    android:layout_width="180dp"
-                    android:layout_height="wrap_content"
-                    android:id="@+id/imageView"
-                    android:layout_gravity="center"
-                    android:layout_row="0"
-                    android:src="@drawable/zen_cloud" />
+        </LinearLayout>
 
-                <Button
-                    android:id="@+id/viewZenModeButton"
-                    android:layout_width="180dp"
-                    android:layout_height="wrap_content"
-                    android:text="@string/btn_zenview"
-                    android:layout_gravity="center"
-                    android:gravity="center_vertical|center|center_horizontal"
-                    android:onClick="openZenView"
-                    android:layout_row="1"
-                    android:background="@drawable/btn_zen_view"
-                    android:textColor="#6599FF"
-                    />
+        <WebView
+            android:id="@+id/webviewZen"
+            android:layout_width="fill_parent"
+            android:layout_height="fill_parent"
+            android:layout_alignParentLeft="true"
+            android:layout_alignParentStart="true"
+            android:layout_below="@id/progressBar"
+            android:visibility="gone"
+            android:background="#FFF">
 
-            </LinearLayout>
+        </WebView>
 
-            <WebView
-                android:id="@+id/webviewZen"
-                android:layout_width="fill_parent"
-                android:layout_height="fill_parent"
-                android:layout_alignParentLeft="true"
-                android:layout_alignParentStart="true"
-                android:layout_below="@id/progressBar"
-                android:visibility="gone"
-                android:background="#FFF">
-
-            </WebView>
-
-        </GridLayout>
+    </GridLayout>
 
 </RelativeLayout>
