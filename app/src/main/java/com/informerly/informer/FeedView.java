@@ -3,8 +3,6 @@ package com.informerly.informer;
 import android.app.ProgressDialog;
 import android.content.Context;
 import android.content.Intent;
-import android.graphics.Color;
-import android.graphics.Typeface;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.os.AsyncTask;
@@ -15,12 +13,9 @@ import android.support.v4.widget.DrawerLayout;
 import android.support.v4.widget.SwipeRefreshLayout;
 import android.support.v7.app.ActionBarActivity;
 import android.util.Log;
-import android.view.LayoutInflater;
 import android.view.View;
-import android.view.ViewGroup;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
-import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ListView;
 import android.widget.ProgressBar;
@@ -32,7 +27,6 @@ import android.widget.Toast;
 import android.preference.PreferenceManager;
 import android.content.SharedPreferences;
 
-import android.support.v7.app.ActionBarDrawerToggle;
 import android.support.v7.widget.Toolbar;
 
 import android.view.MenuItem;
@@ -47,13 +41,18 @@ import org.apache.http.util.EntityUtils;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
+import java.util.Map;
 import java.util.ArrayList;
+import com.google.gson.Gson;
 
 import com.informerly.informer.APICalls.HttpGetFeedArticles;
 import com.informerly.informer.APICalls.GetFeeds;
 import com.informerly.informer.APICalls.HttpLogout;
-import com.informerly.informer.APICalls.MarkRead;
-
+import com.informerly.informer.Tasks.BookmarkTask;
+import com.informerly.informer.Tasks.MarkReadTask;
+import com.informerly.informer.Adapters.FeedObjectAdapter;
+import com.informerly.informer.Adapters.ArticleObjectAdapter;
+import com.informerly.informer.Util.JSONSharedPreferences;
 
 public class FeedView extends ActionBarActivity {
 
@@ -65,11 +64,12 @@ public class FeedView extends ActionBarActivity {
 
     private ProgressBar articleProgressBar;
 
-    private ArrayList<Article> allArticlesArray, unreadArticlesArray;
+    private ArrayList<Article> allArticlesArray, unreadArticlesArray, savedArticlesArray;
     private ArrayList<Feed> feedItems;
     private RelativeLayout feedsMenu;
+    private LinearLayout topButtons;
 
-    private ArrayAdapter<Article> allArticlesAdapters, unreadArticlesAdapters;
+    private ArrayAdapter<Article> allArticlesAdapters, unreadArticlesAdapters, savedArticlesAdapters;
     private ArrayAdapter<Feed> listFeedsAdapters;
 
     private static Context mContext;
@@ -77,7 +77,7 @@ public class FeedView extends ActionBarActivity {
 //  private ActionBarDrawerToggle mDrawerToggle;
 //  private EditText feedsend;
 
-    private TextView headerTitle;
+    private TextView headerTitle, indicatorText;
 
     private int actualFeedId;
 
@@ -107,6 +107,7 @@ public class FeedView extends ActionBarActivity {
 
         // get the app header tittle
         headerTitle = (TextView) findViewById(R.id.app_header_title);
+        indicatorText = (TextView) findViewById(R.id.indicatorText);
 
         // Setting up application Toolbar
         Toolbar actionBarToolbar = (Toolbar) findViewById(R.id.app_toolbar);
@@ -125,14 +126,26 @@ public class FeedView extends ActionBarActivity {
                 Article selectedArticle = (Article) listview.getAdapter().getItem(pos);
 
                 // reading article actions
-                new markReadArticleTask().execute(String.valueOf(selectedArticle.id), String.valueOf(selectedArticle.read));
-                unreadArticlesArray.remove(selectedArticle);
-                allArticlesArray.get(allArticlesArray.indexOf(selectedArticle)).read = !allArticlesArray.get(allArticlesArray.indexOf(selectedArticle)).read;
+                if (!selectedArticle.isRead()) {
+                    new MarkReadTask().execute(String.valueOf(selectedArticle.getId()), String.valueOf(selectedArticle.isRead()));
+
+                    if(unreadArticlesArray.contains(selectedArticle)) {
+                        unreadArticlesArray.remove(selectedArticle);
+                    }
+
+                    if(allArticlesArray.contains(selectedArticle)) {
+                        allArticlesArray.get(allArticlesArray.indexOf(selectedArticle)).setRead(true);
+                    }
+
+                    if(savedArticlesArray.contains(selectedArticle)) {
+                        savedArticlesArray.get(savedArticlesArray.indexOf(selectedArticle)).setRead(true);
+                    }
+                }
 
                 Intent i = new Intent(FeedView.this, ArticleView.class);
-                i.putExtra("articleUrl", selectedArticle.url);
-                i.putExtra("articleTitle", selectedArticle.title);
-                i.putExtra("articleId", String.valueOf(selectedArticle.id));
+                i.putExtra("articleUrl", selectedArticle.getUrl());
+                i.putExtra("articleTitle", selectedArticle.getTitle());
+                i.putExtra("articleId", String.valueOf(selectedArticle.getId()));
                 i.putExtra("token", sessionToken);
                 i.putExtra("userid", userId);
                 startActivity(i);
@@ -143,7 +156,7 @@ public class FeedView extends ActionBarActivity {
         registerForContextMenu(articlesList);
 
         // Adding articles filters at top of list
-        LinearLayout topButtons = (LinearLayout)getLayoutInflater().inflate(R.layout.action_row, null);
+        topButtons = (LinearLayout)getLayoutInflater().inflate(R.layout.action_row, null);
         articlesList.addHeaderView(topButtons);
 
         // Articles refresher list action
@@ -197,6 +210,22 @@ public class FeedView extends ActionBarActivity {
         SharedPreferences SP = PreferenceManager.getDefaultSharedPreferences(getBaseContext());
         defaultUnreadPreference = SP.getBoolean("filterUnreadPreference", false);
 
+        // Getting stored content (saved articles feed)
+        savedArticlesArray = new ArrayList<Article>();
+        try {
+            if(JSONSharedPreferences.count(FeedView.this, "savedArticles")>0) {
+                Map<String, ?> savedArticlesMap = JSONSharedPreferences.getAll(FeedView.this,"savedArticles");
+                for (Map.Entry<String, ?> entry : savedArticlesMap.entrySet()) {
+                    Gson gson = new Gson();
+                    Article newItem = gson.fromJson((String) entry.getValue(), Article.class);
+                    savedArticlesArray.add(newItem);
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        savedArticlesAdapters = new ArticleObjectAdapter(FeedView.this,savedArticlesArray);
+
     }
 
     @Override
@@ -205,6 +234,19 @@ public class FeedView extends ActionBarActivity {
         if(allArticlesAdapters != null && unreadArticlesAdapters != null) {
             unreadArticlesAdapters.notifyDataSetChanged();
             allArticlesAdapters.notifyDataSetChanged();
+            savedArticlesAdapters.notifyDataSetChanged();
+        }
+    }
+
+    @Override
+    public void onBackPressed() {
+
+        if(drawerAppContent.isDrawerOpen(feedsMenu)) {
+            drawerAppContent.closeDrawer(feedsMenu);
+        } else {
+            Intent intent = new Intent(Intent.ACTION_MAIN);
+            intent.addCategory(Intent.CATEGORY_HOME);
+            startActivity(intent);
         }
     }
 
@@ -218,13 +260,18 @@ public class FeedView extends ActionBarActivity {
         AdapterContextMenuInfo info = (AdapterContextMenuInfo) menuInfo;
         Article selectedArticle = (Article) articlesList.getAdapter().getItem( info.position );
 
-        if(selectedArticle.read) {
+        if(selectedArticle.isRead()) {
             menu.findItem(R.id.menu_read).setTitle("Mark article as unread");
         } else {
             menu.findItem(R.id.menu_read).setTitle("Mark article as read");
         }
-    }
 
+        if(selectedArticle.isBookmarked()) {
+            menu.findItem(R.id.menu_save).setTitle("Remove from bookmarks");
+        } else {
+            menu.findItem(R.id.menu_save).setTitle("Store in bookmarks");
+        }
+    }
 
     @Override
     public boolean onContextItemSelected(MenuItem item) {
@@ -235,20 +282,66 @@ public class FeedView extends ActionBarActivity {
         switch (item.getItemId()) {
             case R.id.menu_read:
                 // reading article actions
-                new markReadArticleTask().execute(String.valueOf(selectedArticle.id), String.valueOf(selectedArticle.read));
-                unreadArticlesArray.remove(selectedArticle);
-                allArticlesArray.get(allArticlesArray.indexOf(selectedArticle)).read = !allArticlesArray.get(allArticlesArray.indexOf(selectedArticle)).read;
+                new MarkReadTask().execute(String.valueOf(selectedArticle.getId()), String.valueOf(selectedArticle.isRead()));
+
+                Boolean read = !selectedArticle.isRead();
+                if(read) {
+                    if(unreadArticlesArray.contains(selectedArticle)) {
+                        unreadArticlesArray.remove(selectedArticle);
+                    }
+                } else {
+                    if(!unreadArticlesArray.contains(selectedArticle)) {
+                        unreadArticlesArray.add(selectedArticle);
+                    }
+                }
+
+                if(allArticlesArray.contains(selectedArticle)) {
+                    allArticlesArray.get(allArticlesArray.indexOf(selectedArticle)).setRead(read);
+                }
+
+                if(savedArticlesArray.contains(selectedArticle)) {
+                    savedArticlesArray.get(savedArticlesArray.indexOf(selectedArticle)).setRead(read);
+                }
+
                 unreadArticlesAdapters.notifyDataSetChanged();
                 allArticlesAdapters.notifyDataSetChanged();
+                savedArticlesAdapters.notifyDataSetChanged();
 
                 return true;
+
             case R.id.menu_save:
-//                    shareCurrentItem();
-                Log.d("MATIAS","share this dude, pos=" + info.position);
+                // bookmarking article actions
+                new BookmarkTask().execute(String.valueOf(selectedArticle.getId()), String.valueOf(selectedArticle.isBookmarked()));
+
+                if(!savedArticlesArray.contains(selectedArticle)) {
+                    savedArticlesArray.add(selectedArticle);
+                    savedArticlesAdapters.notifyDataSetChanged();
+                }
+
+//                String jsonA = "nada";
+//                try {
+//                    jsonA = JSONSharedPreferences.getJSONString(this,"savedArticles", String.valueOf(selectedArticle.getId()));
+//                }
+//                catch (JSONException e) {
+//                    e.printStackTrace();
+//                }
+
+                // updating local lists
+                selectedArticle.setBookmarked(!selectedArticle.isBookmarked());
+                if(unreadArticlesArray.indexOf(selectedArticle) != -1) {
+                    unreadArticlesArray.get(unreadArticlesArray.indexOf(selectedArticle)).setBookmarked(selectedArticle.isBookmarked());
+                    unreadArticlesAdapters.notifyDataSetChanged();
+                }
+
+                if(allArticlesArray.indexOf(selectedArticle)!=-1) {
+                    allArticlesArray.get(allArticlesArray.indexOf(selectedArticle)).setBookmarked(selectedArticle.isBookmarked());
+                    allArticlesAdapters.notifyDataSetChanged();
+                }
                 return true;
 
             case R.id.menu_share:
-                shareArticle(selectedArticle.title, selectedArticle.url);
+                // via android sharing dialog
+                shareArticle(selectedArticle.getTitle(), selectedArticle.getUrl());
                 return true;
 
             default:
@@ -261,51 +354,6 @@ public class FeedView extends ActionBarActivity {
         return mContext;
     }
 
-    public void markArticle(String articleId, Boolean read) {
-
-        if (android.os.Build.VERSION.SDK_INT > 9) {
-            StrictMode.ThreadPolicy policy = new StrictMode.ThreadPolicy.Builder().permitAll().build();
-            StrictMode.setThreadPolicy(policy);
-        }
-        try {
-            HttpEntity resEntityGet = new MarkRead(sessionToken,userId,articleId,read).mark();
-
-            if (resEntityGet != null) {
-                String json = EntityUtils.toString(resEntityGet);
-            } else {
-                Toast.makeText(FeedView.this,"Connection non response",Toast.LENGTH_SHORT).show();
-            }
-        } catch (Exception e) {
-            Toast.makeText(FeedView.this,"Connection error",Toast.LENGTH_SHORT).show();
-        }
-    }
-
-    private class markReadArticleTask extends AsyncTask<String, Void, String> {
-        //ProgressDialog dilog;
-        @Override
-        protected String doInBackground(String... params) {
-            try {
-                String articleId = params[0];
-                Boolean isRead = Boolean.valueOf(params[1]);
-                markArticle(articleId, isRead);
-            }
-            catch(Exception e)
-            {
-                Toast.makeText(FeedView.this,"Connection error",Toast.LENGTH_SHORT).show();
-            }
-
-            return "Executed";
-        }
-
-        @Override
-        protected void onPostExecute(String result) {
-        }
-
-        @Override
-        protected void onPreExecute() {
-        }
-    }
-
     public void shareArticle(String articleTitle, String articleUrl) {
         Intent sharingIntent = new Intent(Intent.ACTION_SEND);
         sharingIntent.setType("text/plain");
@@ -313,7 +361,7 @@ public class FeedView extends ActionBarActivity {
         sharingIntent.putExtra(android.content.Intent.EXTRA_SUBJECT, "Subject");
         startActivity(Intent.createChooser(sharingIntent, "Share using"));
     }
-    
+
     public void say_hello(View v) {
         Log.d("Just test", "hello there!");
     }
@@ -358,6 +406,21 @@ public class FeedView extends ActionBarActivity {
 //        Email.putExtra(Intent.EXTRA_TEXT, feedsend.getText().toString());
 //        startActivity(Email);
 //    }
+
+    public void goBookmarks(View v) {
+        headerTitle.setText(R.string.menu_bookmarks);
+        articlesRefresher.setEnabled(false);
+
+        if(savedArticlesArray.size() > 0) {
+            articlesList.setAdapter(savedArticlesAdapters);
+            articlesList.removeHeaderView(topButtons);
+        } else {
+            articlesList.setVisibility(View.GONE);
+            indicatorText.setVisibility(View.VISIBLE);
+        }
+
+        switchDrawer(feedsMenu);
+    }
 
     public void goSettings(View v) {
         Intent i = new Intent(this, Preferences.class);
@@ -471,7 +534,6 @@ public class FeedView extends ActionBarActivity {
         }
     }
 
-
     private class userFeedsTask extends AsyncTask<String, Void, String> {
 
         @Override
@@ -502,42 +564,21 @@ public class FeedView extends ActionBarActivity {
     private class feedItemClickListener implements ListView.OnItemClickListener {
         @Override
         public void onItemClick(AdapterView parent, View view, int position, long id) {
-            new feedTask().execute(Integer.toString(feedItems.get(position).id));
-            headerTitle.setText(feedItems.get(position).name);
+            new feedTask().execute(Integer.toString(feedItems.get(position).getId()));
+            headerTitle.setText(feedItems.get(position).getName());
+
+            if(articlesList.getVisibility()!=View.VISIBLE) {
+                articlesList.setVisibility(View.VISIBLE);
+                indicatorText.setVisibility(View.GONE);
+            }
+            if(articlesList.getHeaderViewsCount() == 0) {
+                articlesList.addHeaderView(topButtons);
+            }
+            if(!articlesRefresher.isEnabled()) {
+                articlesRefresher.setEnabled(true);
+            }
             switchDrawer(feedsMenu);
         }
-    }
-
-    private class FeedObjectAdapter extends ArrayAdapter<Feed> {
-
-        protected Context mContext;
-        protected ArrayList<Feed> mItems;
-
-        protected ArrayList<String> original;
-
-        public FeedObjectAdapter(Context context, ArrayList<Feed> feeds) {
-            super(context, R.layout.menu_row, feeds);
-            mContext = context;
-            mItems = feeds;
-        }
-
-        public View getView(int position, View convertView, ViewGroup parent) {
-            if(convertView == null){
-                convertView = LayoutInflater.from(FeedView.this).inflate(R.layout.menu_row,null);
-            }
-            TextView feedNameview = ((TextView) convertView.findViewById(R.id.feedTitle));
-            ImageView feedIconview =((ImageView) convertView.findViewById(R.id.feedIcon));
-
-            feedNameview.setText(mItems.get(position).name);
-            if(mItems.get(position).name.equals("Your Feed")) {
-                feedIconview.setImageResource(R.drawable.home);
-            } else {
-                feedIconview.setImageResource(R.drawable.folder);
-            }
-
-            return convertView;
-        }
-
     }
 
     public void getArticles(int feedId) {
@@ -561,9 +602,9 @@ public class FeedView extends ActionBarActivity {
                     for(int index = 0; index < jsonArticles.length(); index++) {
 
                         Article newItem = new Article( jsonArticles.getJSONObject(index) );
-                        allArticlesArray.add( newItem );
+                        allArticlesArray.add(newItem);
 
-                        if(!newItem.read) {
+                        if(!newItem.isRead()) {
                             unreadArticlesArray.add(newItem);
                         }
 
@@ -591,8 +632,8 @@ public class FeedView extends ActionBarActivity {
         @Override
         protected void onPostExecute(String result) {
             try {
-                allArticlesAdapters = new ArticlesObjectAdapter(FeedView.this,allArticlesArray);
-                unreadArticlesAdapters = new ArticlesObjectAdapter(FeedView.this,unreadArticlesArray);
+                allArticlesAdapters = new ArticleObjectAdapter(FeedView.this,allArticlesArray);
+                unreadArticlesAdapters = new ArticleObjectAdapter(FeedView.this,unreadArticlesArray);
 
                 if(defaultUnreadPreference) {
                     RadioButton unreadFilterBtn = (RadioButton) findViewById(R.id.filterUnreadRadioButton);
@@ -613,52 +654,4 @@ public class FeedView extends ActionBarActivity {
         protected void onPreExecute() {
         }
     }
-
-    private class ArticlesObjectAdapter extends ArrayAdapter<Article> {
-
-        protected Context mContext;
-        protected ArrayList<Article> mItems;
-
-        protected ArrayList<String> original;
-
-        public ArticlesObjectAdapter(Context context, ArrayList<Article> items) {
-            super(context, R.layout.row, items);
-            mContext = context;
-            mItems = items;
-        }
-
-        public View getView(int position, View convertView, ViewGroup parent) {
-            if(convertView == null){
-                convertView = LayoutInflater.from(FeedView.this).inflate(R.layout.row,null);
-            }
-            TextView readview = ((TextView) convertView.findViewById(R.id.read));
-            TextView titleview = ((TextView) convertView.findViewById(R.id.title));
-            ImageView clockview =((ImageView) convertView.findViewById(R.id.clock));
-            TextView sourceview = ((TextView) convertView.findViewById(R.id.source));
-
-            titleview.setText(mItems.get(position).title);
-            sourceview.setText(mItems.get(position).source);
-            sourceview.setTextColor(Color.parseColor( mItems.get(position).source_color ));
-            sourceview.setTypeface(null, Typeface.BOLD);
-
-            if(mItems.get(position).read)
-            {
-                readview.setText("Read");
-                titleview.setTypeface(null, Typeface.NORMAL);
-                titleview.setTextColor(Color.GRAY);
-                clockview.setImageResource(R.drawable.tick);
-            }
-            else
-            {
-                titleview.setTextColor(Color.BLACK);
-                titleview.setTypeface(null, Typeface.BOLD);
-                clockview.setImageResource(R.drawable.clock);
-                readview.setText(mItems.get(position).reading_time + " min read");
-            }
-
-            return convertView;
-        }
-
-    }
-
 }
