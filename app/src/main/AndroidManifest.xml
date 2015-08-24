@@ -30,12 +30,11 @@
             android:theme="@style/Theme.AppCompat.Light.NoActionBar" >
         </activity>
         <activity
-            android:name="com.informerly.informer.FeedView"
-
+            android:name=".FeedView"
             android:screenOrientation="portrait" >
         </activity>
         <activity
-            android:name="com.informerly.informer.splashscreen"
+            android:name=".Splashscreen"
             android:screenOrientation="portrait"
             android:theme="@style/Theme.AppCompat.Light.NoActionBar" >
             <intent-filter>
@@ -44,7 +43,7 @@
             </intent-filter>
         </activity>
         <activity
-            android:name="com.informerly.informer.ArticleView"
+            android:name=".ArticleView"
             android:screenOrientation="portrait"
             android:theme="@style/Theme.AppCompat.Light.NoActionBar">
         </activity>
