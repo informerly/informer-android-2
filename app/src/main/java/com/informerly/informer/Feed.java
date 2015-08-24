@@ -11,11 +11,11 @@ public class Feed {
     }
     */
 
-    int id;
-    String name;
-    String magic;
-    boolean primary;
-    int user_id;
+    private int id;
+    private String name;
+    private String magic;
+    private boolean primary;
+    private int user_id;
 
     public Feed(
             int id,
@@ -44,4 +44,45 @@ public class Feed {
             e.printStackTrace();
         }
     }
+
+    public int getId() {
+        return id;
+    }
+
+    public void setId(int id) {
+        this.id = id;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    public String getMagic() {
+        return magic;
+    }
+
+    public void setMagic(String magic) {
+        this.magic = magic;
+    }
+
+    public boolean isPrimary() {
+        return primary;
+    }
+
+    public void setPrimary(boolean primary) {
+        this.primary = primary;
+    }
+
+    public int getUser_id() {
+        return user_id;
+    }
+
+    public void setUser_id(int user_id) {
+        this.user_id = user_id;
+    }
+
 }
