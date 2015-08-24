@@ -1,6 +1,10 @@
 package com.informerly.informer.APICalls;
 
+import android.content.Context;
+import android.content.SharedPreferences;
 import android.util.Log;
+
+import com.informerly.informer.FeedView;
 
 import org.apache.http.HttpEntity;
 import org.apache.http.NameValuePair;
@@ -19,10 +23,12 @@ public class MarkRead {
     String token, id, articleid;
     static String baseurl ;
     HttpEntity resEntity = null;
+    SharedPreferences sharedpreferences;
 
-    public MarkRead(String tooken, String userid, String feedid, Boolean read) {
-        this.token = tooken;
-        this.id = userid;
+    public MarkRead(String feedid, Boolean read) {
+        sharedpreferences = FeedView.getContext().getSharedPreferences("user_session", Context.MODE_PRIVATE);
+        this.token = sharedpreferences.getString("token", null);;
+        this.id = sharedpreferences.getString("userid", null);;
         this.articleid = feedid;
 
         if(read) {
