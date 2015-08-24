@@ -4,7 +4,6 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.graphics.Color;
 import android.os.AsyncTask;
-import android.os.StrictMode;
 import android.preference.PreferenceManager;
 import android.support.v7.app.ActionBarActivity;
 import android.os.Bundle;
@@ -12,32 +11,27 @@ import android.view.View;
 import android.webkit.WebChromeClient;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
-import android.widget.Button;
 import android.widget.LinearLayout;
 import android.widget.ProgressBar;
+import android.widget.RadioButton;
 import android.widget.Toast;
 
+import com.informerly.informer.APICalls.GetZenContent;
+import com.informerly.informer.Util.JSONSharedPreferences;
+
 import org.apache.http.HttpEntity;
-import org.apache.http.HttpResponse;
-import org.apache.http.client.HttpClient;
-import org.apache.http.client.methods.HttpGet;
-import org.apache.http.impl.client.DefaultHttpClient;
 import org.apache.http.util.EntityUtils;
 import org.json.JSONObject;
-
 
 public class ArticleView extends ActionBarActivity {
     
     WebView webView,zenView;
-    Button viewZenButton,viewWebButton;
+    RadioButton viewZenButton,viewWebButton;
     String articleUrl, articleTitle, userId, sesionToken, articleid, json, zenArticleContent;
     ProgressBar webViewProgressBar,zenViewProgressBar;
-    HttpEntity resEntityGet;
     LinearLayout switchToZenView;
-
     boolean onZenView = false;
-    boolean webViewLoading = false;
-    boolean zenViewLoading = false;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -55,8 +49,8 @@ public class ArticleView extends ActionBarActivity {
         webView = (WebView) findViewById(R.id.webview);
         zenView = (WebView) findViewById(R.id.webviewZen);
 
-        viewWebButton = (Button) findViewById(R.id.web);
-        viewZenButton = (Button) findViewById(R.id.zen);
+        viewWebButton = (RadioButton) findViewById(R.id.web);
+        viewZenButton = (RadioButton) findViewById(R.id.zen);
 
         switchToZenView = (LinearLayout) findViewById(R.id.switchToZenView);
 
@@ -74,18 +68,18 @@ public class ArticleView extends ActionBarActivity {
 
         webView.setWebViewClient(new MyWebViewClient());
         zenView.setWebViewClient(new ZenWebViewClient());
-        
+
+        // loading article
+        executeZen();
+        webView.loadUrl(articleUrl);
 
         // Getting user preferences
         SharedPreferences SP = PreferenceManager.getDefaultSharedPreferences(getBaseContext());
         Boolean defaultZenPreference = SP.getBoolean("zenViewPreference", false);
 
         if(defaultZenPreference) {
-            executeZen();
             openZenView(this.findViewById(android.R.id.content));
         } else {
-            // set html view by default
-            webView.loadUrl(articleUrl);
             openWebView(this.findViewById(android.R.id.content));
         }
 
@@ -96,7 +90,6 @@ public class ArticleView extends ActionBarActivity {
         @Override
         public boolean shouldOverrideUrlLoading(WebView view, String url) {
             view.loadUrl(url);
-            webViewLoading = true;
             return true;
         }
 
@@ -151,7 +144,18 @@ public class ArticleView extends ActionBarActivity {
     }
 
     public void executeZen() {
-        new loadZenPageTask().execute("");
+
+        try {
+            JSONObject article = JSONSharedPreferences.getJSONObject(ArticleView.this, "savedArticles", String.valueOf(articleid));
+            if(article.has("content")) {
+                zenArticleContent = article.getString("content");
+                zenView.loadData(zenArticleContent, "text/html", "utf-8");
+            } else {
+                new loadZenPageTask().execute(articleid);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
     public void back_Me(View v) {
@@ -167,10 +171,6 @@ public class ArticleView extends ActionBarActivity {
     }
 
     public void openWebView(View v) {
-
-        if(!webViewLoading) {
-            webView.loadUrl(articleUrl);
-        }
 
         if(zenView.getVisibility() == View.VISIBLE) {
             zenView.setVisibility(View.GONE);
@@ -188,15 +188,11 @@ public class ArticleView extends ActionBarActivity {
         }
 
         onZenView = false;
-        viewWebButton.setBackgroundColor(Color.parseColor("#FF3B9EFC"));
-        viewZenButton.setBackgroundColor(Color.parseColor("#ff000000"));
     }
 
     public void openZenView(View v) {
 
-        if(!zenViewLoading) {
-            executeZen();
-        }
+        viewZenButton.setChecked(true);
 
         if(webView.getVisibility() == View.VISIBLE) {
             webView.setVisibility(View.GONE);
@@ -214,41 +210,20 @@ public class ArticleView extends ActionBarActivity {
 
         onZenView = true;
         switchToZenView.setVisibility(View.GONE);
-        viewWebButton.setBackgroundColor(Color.parseColor("#ff000000"));
-        viewZenButton.setBackgroundColor(Color.parseColor("#FF3B9EFC"));
-    }
-
-    public void getZenPageForArticle() {
-
-        if (android.os.Build.VERSION.SDK_INT > 9) {
-            StrictMode.ThreadPolicy policy = new StrictMode.ThreadPolicy.Builder().permitAll().build();
-            StrictMode.setThreadPolicy(policy);
-        }
-        try {
-            HttpClient client = new DefaultHttpClient();
-            client.getParams().setParameter(org.apache.http.params.CoreProtocolPNames.USER_AGENT, System.getProperty("http.agent"));
-            String getURL = "https://informerly.com/api/v1/links/" + articleid + "?auth_token=" + sesionToken + "&content=true";
-
-            HttpGet get = new HttpGet(getURL);
-            HttpResponse responseGet = client.execute(get);
-            resEntityGet = responseGet.getEntity();
-            if (resEntityGet != null) {
-                json = EntityUtils.toString(resEntityGet);
-                JSONObject response = new JSONObject(json);
-                zenArticleContent = response.getJSONObject("link").getString("content");
-            }
-        }
-        catch (Exception e) {
-            Toast.makeText(ArticleView.this, "Connection error", Toast.LENGTH_SHORT).show();
-        }
     }
 
     private class loadZenPageTask extends AsyncTask<String, Void, String> {
         @Override
         protected String doInBackground(String... params) {
-            
+            String articleId = params[0];
+
             try {
-                getZenPageForArticle();
+                HttpEntity resEntityGet = new GetZenContent(articleId).getContent();
+                if (resEntityGet != null) {
+                    json = EntityUtils.toString(resEntityGet);
+                    JSONObject response = new JSONObject(json);
+                    zenArticleContent = response.getJSONObject("link").getString("content");
+                }
             }
             catch(Exception e)
             {
@@ -259,7 +234,6 @@ public class ArticleView extends ActionBarActivity {
 
         @Override
         protected void onPostExecute(String result) {
-//            zenView.loadDataWithBaseURL(null, zenArticleContent, "text/html", "utf-8", null);
             zenView.loadData(zenArticleContent, "text/html", "utf-8");
         }
 
