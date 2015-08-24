@@ -7,6 +7,7 @@
 
     </style>
 
+    <!-- list filter buttons used on feed view (read/unread) -->
     <style name="filterButton" parent="@android:style/Widget.Button">
         <item name="android:layout_width">0dp</item>
         <item name="android:layout_height">wrap_content</item>
@@ -23,6 +24,27 @@
     </style>
 
     <style name="filterButtonRight" parent="filterButton">
+        <item name="android:bottomRightRadius">5dp</item>
+        <item name="android:topRightRadius">5dp</item>
+    </style>
+
+    <!-- switch view buttons used on article view (web/zen) -->
+    <style name="switchViewButton" parent="@android:style/Widget.Button">
+        <item name="android:layout_width">0dp</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:layout_weight">1</item>
+        <item name="android:paddingLeft">30dp</item>
+        <item name="android:paddingTop">10dp</item>
+        <item name="android:paddingRight">30dp</item>
+        <item name="android:paddingBottom">10dp</item>
+    </style>
+
+    <style name="switchViewButtonLeft" parent="switchViewButton">
+        <item name="android:bottomLeftRadius">5dp</item>
+        <item name="android:topLeftRadius">5dp</item>
+    </style>
+
+    <style name="switchViewButtonRight" parent="switchViewButton">
         <item name="android:bottomRightRadius">5dp</item>
         <item name="android:topRightRadius">5dp</item>
     </style>
