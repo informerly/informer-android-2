@@ -4,37 +4,32 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:padding="4dp"
-    android:orientation="vertical" >
+    android:background="#fff"
+    android:backgroundTint="#fff"
+    android:orientation="vertical">
 
     <LinearLayout
-        android:layout_width="match_parent"
+        android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:background="@drawable/border_row"
-        android:layout_marginTop="5dp">
+        android:orientation="horizontal"
+        android:layout_margin="10dp">
 
-        <LinearLayout
+        <ImageView
+            android:layout_width="30dp"
+            android:layout_height="30dp"
+            android:id="@+id/feedIcon"
+            android:src="@drawable/ic_folder_open_black_24dp"
+            android:tint="#BBB"
+            android:layout_marginLeft="6dp" />
+
+        <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:layout_margin="10dp">
-
-            <ImageView
-                android:layout_width="30dp"
-                android:layout_height="30dp"
-                android:id="@+id/feedIcon"
-                android:src="@drawable/folder"
-                android:layout_marginLeft="15dp" />
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:id="@+id/feedTitle"
-                android:text="@string/feed_default"
-                android:textSize="20sp"
-                android:layout_gravity="center"
-                android:layout_marginLeft="20dp" />
-
-        </LinearLayout>
+            android:id="@+id/feedTitle"
+            android:text="@string/feed_default"
+            android:textSize="18sp"
+            android:layout_gravity="center_vertical"
+            android:layout_marginLeft="26dp" />
 
     </LinearLayout>
 
