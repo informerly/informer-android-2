@@ -2,6 +2,7 @@ package com.informerly.informer;
 
 import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.graphics.Color;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
@@ -203,6 +204,9 @@ public class LogIn extends ActionBarActivity {
             inputManager.hideSoftInputFromWindow(view.getWindowToken(), InputMethodManager.HIDE_NOT_ALWAYS);
         }
     }
+
+    SharedPreferences sharedpreferences;
+
     private class makeLogin extends AsyncTask<String, Void, String> {
         @Override
         protected String doInBackground(String... params) {
@@ -222,8 +226,15 @@ public class LogIn extends ActionBarActivity {
                     i.putExtra("Token",token);
                     i.putExtra("id",id);
                     String useremail = emailId.getText().toString();
-                    i.putExtra("useremail",useremail);
+                    i.putExtra("useremail", useremail);
                     baar.setVisibility(View.GONE);
+
+                    sharedpreferences = getSharedPreferences("user_session", Context.MODE_PRIVATE);
+                    SharedPreferences.Editor editor = sharedpreferences.edit();
+                    editor.putString("token", token);
+                    editor.putString("userid", id);
+                    editor.putString("useremail", useremail);
+                    editor.commit();
 
                     ParseInstallation deviceParseInstallation = ParseInstallation.getCurrentInstallation();
                     deviceParseInstallation.put("username", useremail);
@@ -232,11 +243,11 @@ public class LogIn extends ActionBarActivity {
                     ParsePush.subscribeInBackground("user_"+id, new SaveCallback() {
                         @Override
                         public void done(com.parse.ParseException e) {
-                            if (e == null) {
-                                Log.d("com.parse.push", "Successfully subscribed to your own user channel.");
-                            } else {
-                                Log.e("com.parse.push", "Failed to subscribe for push for own Channel " + e.getMessage(), e.getCause());
-                            }
+                        if (e == null) {
+                            Log.d("com.parse.push", "Successfully subscribed to your own user channel.");
+                        } else {
+                            Log.e("com.parse.push", "Failed to subscribe for push for own Channel " + e.getMessage(), e.getCause());
+                        }
                         }
                     });
 

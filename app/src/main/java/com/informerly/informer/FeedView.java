@@ -83,6 +83,7 @@ public class FeedView extends ActionBarActivity {
 
     private boolean defaultUnreadPreference;
 
+    SharedPreferences sharedpreferences;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -371,24 +372,23 @@ public class FeedView extends ActionBarActivity {
 
         boolean iff = isNetworkAvailable();
         if (iff) {
-    //      new LogoutTask2().execute(sessionToken, userId);
+    //      new Logout().execute(sessionToken, userId);
             new LogoutTask().execute("");
         } else {
             Toast.makeText(this, "No Internet Connection", Toast.LENGTH_LONG).show();
         }
     }
 
-    void logout() {
+    private void logout() {
         if (android.os.Build.VERSION.SDK_INT > 9) {
             StrictMode.ThreadPolicy policy = new StrictMode.ThreadPolicy.Builder().permitAll().build();
             StrictMode.setThreadPolicy(policy);
         }
         try {
-            HttpEntity resEntity =  new HttpLogout(sessionToken,userId).getEntity();
+            new HttpLogout(sessionToken,userId).getEntity();
         } catch (Exception e) {
             e.printStackTrace();
         }
-
     }
 
     private boolean isNetworkAvailable() {
@@ -409,8 +409,15 @@ public class FeedView extends ActionBarActivity {
 
         @Override
         protected void onPostExecute(String result) {
+            sharedpreferences = getSharedPreferences("user_session", Context.MODE_PRIVATE);
+            SharedPreferences.Editor editor = sharedpreferences.edit();
+            editor.clear();
+            editor.commit();
             dialog.cancel();
+
             try {
+                Intent i = new Intent(FeedView.this, LogIn.class);
+                startActivity(i);
                 finish();
             } catch (Exception r) {
                 r.printStackTrace();
