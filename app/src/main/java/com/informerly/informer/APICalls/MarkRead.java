@@ -1,40 +1,21 @@
 package com.informerly.informer.APICalls;
 
-import android.content.Context;
-import android.content.SharedPreferences;
-import android.util.Log;
-
-import com.informerly.informer.FeedView;
-
 import org.apache.http.HttpEntity;
-import org.apache.http.NameValuePair;
 import org.apache.http.client.HttpClient;
-import org.apache.http.client.entity.UrlEncodedFormEntity;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.impl.client.DefaultHttpClient;
-import org.apache.http.message.BasicNameValuePair;
-import org.apache.http.protocol.HTTP;
 import org.apache.http.HttpResponse;
-import java.util.ArrayList;
-import java.util.List;
 
 
 public class MarkRead {
-    String token, id, articleid;
     static String baseurl ;
     HttpEntity resEntity = null;
-    SharedPreferences sharedpreferences;
 
-    public MarkRead(String feedid, Boolean read) {
-        sharedpreferences = FeedView.getContext().getSharedPreferences("user_session", Context.MODE_PRIVATE);
-        this.token = sharedpreferences.getString("token", null);;
-        this.id = sharedpreferences.getString("userid", null);;
-        this.articleid = feedid;
-
+    public MarkRead(String token, String userId, String feedid, Boolean read) {
         if(read) {
-            baseurl = "https://informerly.com/api/v1/links/"+articleid+"/mark_as_unread?auth_token=" + token + "&client_id=" + id;
+            baseurl = "https://informerly.com/api/v1/links/"+feedid+"/mark_as_unread?auth_token=" + token + "&client_id=" + userId;
         } else {
-            baseurl = "https://informerly.com/api/v1/links/"+articleid+"/read?auth_token=" + token + "&client_id=" + id;
+            baseurl = "https://informerly.com/api/v1/links/"+feedid+"/read?auth_token=" + token + "&client_id=" + userId;
         }
     }
 

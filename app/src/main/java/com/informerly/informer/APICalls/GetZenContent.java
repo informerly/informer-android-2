@@ -1,9 +1,5 @@
 package com.informerly.informer.APICalls;
 
-import android.content.Context;
-import android.content.SharedPreferences;
-import com.informerly.informer.FeedView;
-
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.HttpClient;
@@ -11,14 +7,10 @@ import org.apache.http.client.methods.HttpGet;
 import org.apache.http.impl.client.DefaultHttpClient;
 
 public class GetZenContent {
-    String token, id, url;
+    String url;
     HttpEntity resEntity = null;
-    SharedPreferences sharedpreferences;
 
-    public GetZenContent(String articleId) {
-        sharedpreferences = FeedView.getContext().getSharedPreferences("user_session", Context.MODE_PRIVATE);
-        this.token = sharedpreferences.getString("token", null);
-        this.id = sharedpreferences.getString("userid", null);
+    public GetZenContent(String token, String articleId) {
         this.url = "https://informerly.com/api/v1/links/" + articleId + "?auth_token=" + token + "&content=true";
     }
 
