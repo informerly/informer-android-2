@@ -24,12 +24,7 @@ public class Bookmark {
         this.token = sharedpreferences.getString("token", null);;
         this.id = sharedpreferences.getString("userid", null);;
         this.articleid = feedid;
-
-        if(bookmarked) {
-            baseurl = "https://informerly.com/api/v1/bookmarks?auth_token=" + token + "&client_id=" + id;
-        } else {
-            baseurl = "https://informerly.com/api/v1/unbookmarks?auth_token=" + token + "&client_id=" + id;
-        }
+        baseurl = "https://informerly.com/api/v1/bookmarks?link_id=" + articleid + "&auth_token=" + token + "&client_id=" + id;
     }
 
     public HttpEntity bookmark() {
