@@ -21,8 +21,6 @@ public class ArticleObjectAdapter extends ArrayAdapter<Article> {
     protected Context mContext;
     protected ArrayList<Article> mItems;
 
-    protected ArrayList<String> original;
-
     public ArticleObjectAdapter(Context context, ArrayList<Article> items) {
         super(context, R.layout.row, items);
         mContext = context;
@@ -30,9 +28,11 @@ public class ArticleObjectAdapter extends ArrayAdapter<Article> {
     }
 
     public View getView(int position, View convertView, ViewGroup parent) {
+
         if(convertView == null){
             convertView = LayoutInflater.from(FeedView.getContext()).inflate(R.layout.row,null);
         }
+
         TextView readview = ((TextView) convertView.findViewById(R.id.read));
         TextView titleview = ((TextView) convertView.findViewById(R.id.title));
         ImageView clockview =((ImageView) convertView.findViewById(R.id.clock));
