@@ -53,6 +53,11 @@ import com.informerly.informer.Tasks.MarkReadTask;
 import com.informerly.informer.Adapters.FeedObjectAdapter;
 import com.informerly.informer.Adapters.ArticleObjectAdapter;
 import com.informerly.informer.Util.JSONSharedPreferences;
+import com.parse.ParseInstallation;
+import com.parse.ParsePush;
+import com.parse.SaveCallback;
+
+public class FeedView extends ActionBarActivity implements ReceiveNotifications {
 
 public class FeedView extends ActionBarActivity {
 
@@ -98,12 +103,24 @@ public class FeedView extends ActionBarActivity {
         userId = intent.getStringExtra("id");
         useremail = intent.getStringExtra("useremail");
 
+        // Subscribing to user parse notifications channel channel
+        ParseInstallation deviceParseInstallation = ParseInstallation.getCurrentInstallation();
+        deviceParseInstallation.put("username", useremail);
+        deviceParseInstallation.saveInBackground();
+        ParsePush.subscribeInBackground("user_" + userId, new SaveCallback() {
+            @Override
+            public void done(com.parse.ParseException e) {
+                if (e == null) {
+                    Log.d("com.parse.push", "Successfully subscribed to channel: " + "user_" + userId);
+                } else {
+                    Log.e("com.parse.push", "Failed to subscribe for push for own Channel " + e.getMessage(), e.getCause());
+                }
+            }
+        });
+
         // Preparing main Layout
         drawerAppContent = (DrawerLayout) findViewById(R.id.drawer_app_content);
         drawerAppContent.setDrawerLockMode(DrawerLayout.LOCK_MODE_LOCKED_CLOSED);
-
-        // get the progress bar
-        articleProgressBar = (ProgressBar) findViewById(R.id.articleProgressBar);
 
         // get the app header tittle
         headerTitle = (TextView) findViewById(R.id.app_header_title);

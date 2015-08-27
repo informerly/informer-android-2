@@ -41,6 +41,9 @@ public class LogIn extends ActionBarActivity {
     TextView signn,forget;
     JSONObject person;
     String token,json;
+
+    String userid;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -224,7 +227,7 @@ public class LogIn extends ActionBarActivity {
                     //dilog.cancel();
                     Intent i = new Intent(LogIn.this, FeedView.class);
                     i.putExtra("Token",token);
-                    i.putExtra("id",id);
+                    i.putExtra("id", id);
                     String useremail = emailId.getText().toString();
                     i.putExtra("useremail", useremail);
                     baar.setVisibility(View.GONE);
@@ -235,21 +238,6 @@ public class LogIn extends ActionBarActivity {
                     editor.putString("userid", id);
                     editor.putString("useremail", useremail);
                     editor.commit();
-
-                    ParseInstallation deviceParseInstallation = ParseInstallation.getCurrentInstallation();
-                    deviceParseInstallation.put("username", useremail);
-                    deviceParseInstallation.saveInBackground();
-
-                    ParsePush.subscribeInBackground("user_"+id, new SaveCallback() {
-                        @Override
-                        public void done(com.parse.ParseException e) {
-                        if (e == null) {
-                            Log.d("com.parse.push", "Successfully subscribed to your own user channel.");
-                        } else {
-                            Log.e("com.parse.push", "Failed to subscribe for push for own Channel " + e.getMessage(), e.getCause());
-                        }
-                        }
-                    });
 
                     startActivity(i);
                     emailId.setText("");
