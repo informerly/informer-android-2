@@ -6,10 +6,8 @@ import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.impl.client.DefaultHttpClient;
 
-
 public class HttpGetFeedArticles {
     String token, id;
-    int feedId;
 
     public HttpGetFeedArticles(String tooken, String userid) {
         this.token = tooken;
