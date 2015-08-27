@@ -15,9 +15,11 @@ public class MarkReadTask extends AsyncTask<String, Void, String> {
     @Override
     protected String doInBackground(String... params) {
         try {
-            String articleId = params[0];
-            Boolean isRead = Boolean.valueOf(params[1]);
-            markArticle(articleId, isRead);
+            String token = params[0];
+            String userId = params[1];
+            String articleId = params[2];
+            Boolean isRead = Boolean.valueOf(params[3]);
+            markArticle(token, userId, articleId, isRead);
         }
         catch(Exception e)
         {
@@ -35,14 +37,14 @@ public class MarkReadTask extends AsyncTask<String, Void, String> {
     protected void onPreExecute() {
     }
 
-    public void markArticle(String articleId, Boolean read) {
+    public void markArticle(String token, String userId, String articleId, Boolean read) {
 
         if (android.os.Build.VERSION.SDK_INT > 9) {
             StrictMode.ThreadPolicy policy = new StrictMode.ThreadPolicy.Builder().permitAll().build();
             StrictMode.setThreadPolicy(policy);
         }
         try {
-            HttpEntity resEntityGet = new MarkRead(articleId,read).mark();
+            HttpEntity resEntityGet = new MarkRead(token, userId, articleId,read).mark();
 
             if (resEntityGet != null) {
                 String json = EntityUtils.toString(resEntityGet);

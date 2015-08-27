@@ -13,14 +13,17 @@ import org.apache.http.HttpEntity;
 import org.apache.http.util.EntityUtils;
 import org.json.JSONObject;
 
+import android.util.Log;
+
 public class BookmarkTask extends AsyncTask<String, Void, String> {
 
     @Override
     protected String doInBackground(String... params) {
         try {
-            String articleId = params[0];
-            Boolean isBookmarked = Boolean.valueOf(params[1]);
-            bookmarkArticle(articleId, isBookmarked);
+            String token = params[0];
+            String articleId = params[1];
+            Boolean isBookmarked = Boolean.valueOf(params[2]);
+            bookmarkArticle(token, articleId, isBookmarked);
         }
         catch(Exception e)
         {
@@ -38,7 +41,7 @@ public class BookmarkTask extends AsyncTask<String, Void, String> {
     protected void onPreExecute() {
     }
 
-    public void bookmarkArticle(String articleId, Boolean bookmarked) {
+    public void bookmarkArticle(String token, String articleId, Boolean bookmarked) {
 
         if (android.os.Build.VERSION.SDK_INT > 9) {
             StrictMode.ThreadPolicy policy = new StrictMode.ThreadPolicy.Builder().permitAll().build();
@@ -55,7 +58,7 @@ public class BookmarkTask extends AsyncTask<String, Void, String> {
 
             if(!bookmarked) {
                 try {
-                    resEntityGet = new GetZenContent(articleId).getContent();
+                    resEntityGet = new GetZenContent(token, articleId).getContent();
                     if (resEntityGet != null) {
 
                         String jsonArticle = EntityUtils.toString(resEntityGet);
