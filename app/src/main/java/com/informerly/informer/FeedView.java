@@ -12,8 +12,14 @@ import android.os.StrictMode;
 import android.support.v4.widget.DrawerLayout;
 import android.support.v4.widget.SwipeRefreshLayout;
 import android.support.v7.app.ActionBarActivity;
-import android.util.Log;
+import android.support.v7.widget.Toolbar;
+
 import android.view.View;
+import android.view.MenuItem;
+import android.view.MenuInflater;
+import android.view.ContextMenu;
+import android.view.ContextMenu.ContextMenuInfo;
+
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.LinearLayout;
@@ -23,18 +29,12 @@ import android.widget.RadioButton;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
 import android.widget.Toast;
+import android.widget.AdapterView.AdapterContextMenuInfo;
 
 import android.preference.PreferenceManager;
 import android.content.SharedPreferences;
 
-import android.support.v7.widget.Toolbar;
-
-import android.view.MenuItem;
-import android.view.MenuInflater;
-
-import android.view.ContextMenu;
-import android.view.ContextMenu.ContextMenuInfo;
-import android.widget.AdapterView.AdapterContextMenuInfo;
+import com.google.gson.Gson;
 
 import org.apache.http.HttpEntity;
 import org.apache.http.util.EntityUtils;
@@ -43,11 +43,12 @@ import org.json.JSONObject;
 
 import java.util.Map;
 import java.util.ArrayList;
-import com.google.gson.Gson;
+import android.util.Log;
 
 import com.informerly.informer.APICalls.HttpGetFeedArticles;
 import com.informerly.informer.APICalls.GetFeeds;
 import com.informerly.informer.APICalls.HttpLogout;
+import com.informerly.informer.PushNotification.ReceiveNotifications;
 import com.informerly.informer.Tasks.BookmarkTask;
 import com.informerly.informer.Tasks.MarkReadTask;
 import com.informerly.informer.Adapters.FeedObjectAdapter;
@@ -59,15 +60,13 @@ import com.parse.SaveCallback;
 
 public class FeedView extends ActionBarActivity implements ReceiveNotifications {
 
-public class FeedView extends ActionBarActivity {
+    public static ReceiveNotifications notificationReceiver = null;
 
     private String sessionToken, userId, useremail;
     private DrawerLayout drawerAppContent;
 
     private ListView articlesList, feedsListView;
     private SwipeRefreshLayout articlesRefresher, feedsRefresher;
-
-    private ProgressBar articleProgressBar;
 
     private ArrayList<Article> allArticlesArray, unreadArticlesArray, savedArticlesArray;
     private ArrayList<Feed> feedItems;
@@ -79,6 +78,8 @@ public class FeedView extends ActionBarActivity {
 
     private static Context mContext;
 
+    private SharedPreferences appSettings;
+
 //  private ActionBarDrawerToggle mDrawerToggle;
 //  private EditText feedsend;
 
@@ -86,14 +87,20 @@ public class FeedView extends ActionBarActivity {
 
     private int actualFeedId;
 
-    private boolean defaultUnreadPreference;
+    private boolean defaultUnreadPreference, shouldUpdateView;
 
     SharedPreferences sharedpreferences;
+
+    public static Context getContext(){
+        return mContext;
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
 
+        FeedView.notificationReceiver = this;
         super.onCreate(savedInstanceState);
+
         setContentView(R.layout.activity_feed_view);
         Intent intent = getIntent();
         this.mContext = this;
@@ -144,7 +151,7 @@ public class FeedView extends ActionBarActivity {
 
                 // reading article actions
                 if (!selectedArticle.isRead()) {
-                    new MarkReadTask().execute(String.valueOf(selectedArticle.getId()), String.valueOf(selectedArticle.isRead()));
+                    new MarkReadTask().execute(sessionToken, userId, String.valueOf(selectedArticle.getId()), String.valueOf(selectedArticle.isRead()));
 
                     if(unreadArticlesArray.contains(selectedArticle)) {
                         unreadArticlesArray.remove(selectedArticle);
@@ -163,8 +170,6 @@ public class FeedView extends ActionBarActivity {
                 i.putExtra("articleUrl", selectedArticle.getUrl());
                 i.putExtra("articleTitle", selectedArticle.getTitle());
                 i.putExtra("articleId", String.valueOf(selectedArticle.getId()));
-                i.putExtra("token", sessionToken);
-                i.putExtra("userid", userId);
                 startActivity(i);
             }
         });
@@ -181,6 +186,7 @@ public class FeedView extends ActionBarActivity {
         articlesRefresher.setOnRefreshListener(new SwipeRefreshLayout.OnRefreshListener() {
             @Override
             public void onRefresh() {
+                shouldUpdateView = false;
                 new feedTask().execute(Integer.toString(actualFeedId));
             }
         });
@@ -220,12 +226,13 @@ public class FeedView extends ActionBarActivity {
 
 
         // Starting app, getting default feed
+        shouldUpdateView = true;
         new feedTask().execute("0");
         new userFeedsTask().execute("");
 
         // Getting user preferences
-        SharedPreferences SP = PreferenceManager.getDefaultSharedPreferences(getBaseContext());
-        defaultUnreadPreference = SP.getBoolean("filterUnreadPreference", false);
+        appSettings = PreferenceManager.getDefaultSharedPreferences(getBaseContext());
+        defaultUnreadPreference = appSettings.getBoolean("filterUnreadPreference", false);
 
         // Getting stored content (saved articles feed)
         savedArticlesArray = new ArrayList<Article>();
@@ -243,16 +250,67 @@ public class FeedView extends ActionBarActivity {
         }
         savedArticlesAdapters = new ArticleObjectAdapter(FeedView.this,savedArticlesArray);
 
+        //        cleanind local articles storage
+//        try {
+//            Log.d("MATIAS","tengo: " + JSONSharedPreferences.count(FeedView.this,"savedArticles") );
+//            JSONSharedPreferences.removeAll(FeedView.this,"savedArticles");
+//            Log.d("MATIAS","y ahora tengo: " + JSONSharedPreferences.count(FeedView.this,"savedArticles") );
+//        } catch (Exception e) {
+//            e.printStackTrace();
+//        }
+    }
+    
+    @Override
+    protected void onResume() {
+        FeedView.notificationReceiver = this;
+        super.onResume();
+
+        // close drawer, if coming back from preferences
+        if(drawerAppContent.isDrawerOpen(feedsMenu)) {
+            // update list with preferences
+            defaultUnreadPreference = appSettings.getBoolean("filterUnreadPreference", false);
+            switchArticlesViewFilter(defaultUnreadPreference);
+
+            drawerAppContent.closeDrawer(feedsMenu);
+        }
+
+        if(allArticlesAdapters != null && unreadArticlesAdapters != null) {
+
+            sharedpreferences = FeedView.getContext().getSharedPreferences("informer_message", Context.MODE_PRIVATE);
+            boolean feedNeedsUpdate = sharedpreferences.getBoolean("feed_update", false);
+
+            if(feedNeedsUpdate) {
+                shouldUpdateView = false;
+                new feedTask().execute(Integer.toString(actualFeedId));
+                SharedPreferences.Editor editor = sharedpreferences.edit();
+                editor.putBoolean("feed_update", false);
+                editor.apply();
+            } else {
+                unreadArticlesAdapters.notifyDataSetChanged();
+                allArticlesAdapters.notifyDataSetChanged();
+                savedArticlesAdapters.notifyDataSetChanged();
+            }
+        }
+
     }
 
     @Override
-    protected void onResume() {
-        super.onResume();
-        if(allArticlesAdapters != null && unreadArticlesAdapters != null) {
-            unreadArticlesAdapters.notifyDataSetChanged();
-            allArticlesAdapters.notifyDataSetChanged();
-            savedArticlesAdapters.notifyDataSetChanged();
-        }
+    protected void onPause() {
+        FeedView.notificationReceiver = null;
+        super.onPause();
+    }
+
+    @Override
+    public void notificationReceived() {
+        updateFeed();
+    }
+
+    private void updateFeed() {
+        shouldUpdateView = false;
+        new feedTask().execute(Integer.toString(actualFeedId));
+        SharedPreferences.Editor editor = sharedpreferences.edit();
+        editor.putBoolean("feed_update", false);
+        editor.apply();
     }
 
     @Override
@@ -284,9 +342,9 @@ public class FeedView extends ActionBarActivity {
         }
 
         if(selectedArticle.isBookmarked()) {
-            menu.findItem(R.id.menu_save).setTitle("Remove from bookmarks");
+            menu.findItem(R.id.menu_save).setTitle("Remove Article");
         } else {
-            menu.findItem(R.id.menu_save).setTitle("Store in bookmarks");
+            menu.findItem(R.id.menu_save).setTitle("Save Article");
         }
     }
 
@@ -299,7 +357,7 @@ public class FeedView extends ActionBarActivity {
         switch (item.getItemId()) {
             case R.id.menu_read:
                 // reading article actions
-                new MarkReadTask().execute(String.valueOf(selectedArticle.getId()), String.valueOf(selectedArticle.isRead()));
+                new MarkReadTask().execute(sessionToken, userId, String.valueOf(selectedArticle.getId()), String.valueOf(selectedArticle.isRead()));
 
                 Boolean read = !selectedArticle.isRead();
                 if(read) {
@@ -328,23 +386,19 @@ public class FeedView extends ActionBarActivity {
 
             case R.id.menu_save:
                 // bookmarking article actions
-                new BookmarkTask().execute(String.valueOf(selectedArticle.getId()), String.valueOf(selectedArticle.isBookmarked()));
-
-                if(!savedArticlesArray.contains(selectedArticle)) {
-                    savedArticlesArray.add(selectedArticle);
-                    savedArticlesAdapters.notifyDataSetChanged();
-                }
-
-//                String jsonA = "nada";
-//                try {
-//                    jsonA = JSONSharedPreferences.getJSONString(this,"savedArticles", String.valueOf(selectedArticle.getId()));
-//                }
-//                catch (JSONException e) {
-//                    e.printStackTrace();
-//                }
+                new BookmarkTask().execute(sessionToken, String.valueOf(selectedArticle.getId()), String.valueOf(selectedArticle.isBookmarked()));
 
                 // updating local lists
                 selectedArticle.setBookmarked(!selectedArticle.isBookmarked());
+
+                if(selectedArticle.isBookmarked() && !savedArticlesArray.contains(selectedArticle)) {
+                    savedArticlesArray.add(selectedArticle);
+                }
+                if(!selectedArticle.isBookmarked() && savedArticlesArray.contains(selectedArticle)) {
+                    savedArticlesArray.remove(selectedArticle);
+                }
+                savedArticlesAdapters.notifyDataSetChanged();
+
                 if(unreadArticlesArray.indexOf(selectedArticle) != -1) {
                     unreadArticlesArray.get(unreadArticlesArray.indexOf(selectedArticle)).setBookmarked(selectedArticle.isBookmarked());
                     unreadArticlesAdapters.notifyDataSetChanged();
@@ -366,11 +420,7 @@ public class FeedView extends ActionBarActivity {
 
         }
     }
-
-    public static Context getContext(){
-        return mContext;
-    }
-
+    
     public void shareArticle(String articleTitle, String articleUrl) {
         Intent sharingIntent = new Intent(Intent.ACTION_SEND);
         sharingIntent.setType("text/plain");
@@ -581,6 +631,7 @@ public class FeedView extends ActionBarActivity {
     private class feedItemClickListener implements ListView.OnItemClickListener {
         @Override
         public void onItemClick(AdapterView parent, View view, int position, long id) {
+            shouldUpdateView = true;
             new feedTask().execute(Integer.toString(feedItems.get(position).getId()));
             headerTitle.setText(feedItems.get(position).getName());
 
@@ -638,10 +689,12 @@ public class FeedView extends ActionBarActivity {
 
     private class feedTask extends AsyncTask<String, Void, String> {
 
+
         @Override
         protected String doInBackground(String... params) {
             String feedId = params[0];
-            getArticles( Integer.parseInt(feedId) );
+
+            getArticles(Integer.parseInt(feedId));
             actualFeedId = Integer.parseInt(feedId);
             return "Executed";
         }
@@ -649,19 +702,25 @@ public class FeedView extends ActionBarActivity {
         @Override
         protected void onPostExecute(String result) {
             try {
-                allArticlesAdapters = new ArticleObjectAdapter(FeedView.this,allArticlesArray);
-                unreadArticlesAdapters = new ArticleObjectAdapter(FeedView.this,unreadArticlesArray);
+                allArticlesAdapters = new ArticleObjectAdapter(FeedView.this, allArticlesArray);
+                unreadArticlesAdapters = new ArticleObjectAdapter(FeedView.this, unreadArticlesArray);
 
-                if(defaultUnreadPreference) {
-                    RadioButton unreadFilterBtn = (RadioButton) findViewById(R.id.filterUnreadRadioButton);
-                    unreadFilterBtn.setChecked(true);
-                    articlesList.setAdapter(unreadArticlesAdapters);
+                if(shouldUpdateView) {
+                    // follow the default unread preference
+                    defaultUnreadPreference = appSettings.getBoolean("filterUnreadPreference", false);
+                    switchArticlesViewFilter(defaultUnreadPreference);
                 } else {
-                    articlesList.setAdapter(allArticlesAdapters);
+                    // update same filter list
+                    RadioButton allFilterBtn = (RadioButton) findViewById(R.id.filterAllNewsRadioButton);
+                    if(allFilterBtn.isChecked()) {
+                        articlesList.setAdapter(allArticlesAdapters);
+                    } else {
+                        articlesList.setAdapter(unreadArticlesAdapters);
+                    }
                 }
 
-                articleProgressBar.setVisibility(View.GONE);
                 articlesRefresher.setRefreshing(false);
+
             } catch (Exception r) {
                 r.printStackTrace();
             }
@@ -671,4 +730,22 @@ public class FeedView extends ActionBarActivity {
         protected void onPreExecute() {
         }
     }
+
+    private void switchArticlesViewFilter(Boolean unread) {
+
+        if(articlesList.getHeaderViewsCount() == 0) {
+            return;
+        }
+
+        if(unread) {
+            RadioButton unreadFilterBtn = (RadioButton) findViewById(R.id.filterUnreadRadioButton);
+            unreadFilterBtn.setChecked(true);
+            articlesList.setAdapter(unreadArticlesAdapters);
+        } else {
+            RadioButton allFilterBtn = (RadioButton) findViewById(R.id.filterAllNewsRadioButton);
+            allFilterBtn.setChecked(true);
+            articlesList.setAdapter(allArticlesAdapters);
+        }
+    }
+
 }
