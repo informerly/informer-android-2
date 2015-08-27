@@ -1,5 +1,6 @@
 package com.informerly.informer;
 
+import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.graphics.Color;
@@ -21,17 +22,22 @@ import com.informerly.informer.Util.JSONSharedPreferences;
 
 import org.apache.http.HttpEntity;
 import org.apache.http.util.EntityUtils;
+import org.json.JSONException;
 import org.json.JSONObject;
+
+import java.io.IOException;
+
+import android.util.Log;
 
 public class ArticleView extends ActionBarActivity {
     
     WebView webView,zenView;
     RadioButton viewZenButton,viewWebButton;
-    String articleUrl, articleTitle, userId, sesionToken, articleid, json, zenArticleContent;
+    String articleUrl, articleTitle, userId, sesionToken, useremail, articleid, json, zenArticleContent;
     ProgressBar webViewProgressBar,zenViewProgressBar;
     LinearLayout switchToZenView;
     boolean onZenView = false;
-
+    SharedPreferences sharedpreferences;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -39,12 +45,15 @@ public class ArticleView extends ActionBarActivity {
         setContentView(R.layout.article_view);
         Intent intent = getIntent();
 
+        sharedpreferences = this.getSharedPreferences("user_session", Context.MODE_PRIVATE);
+        sesionToken = sharedpreferences.getString("token", null);
+        userId = sharedpreferences.getString("userid", null);
+        useremail = sharedpreferences.getString("useremail", null);
+
         // get article params
         articleid = intent.getStringExtra("articleId");
         articleUrl = intent.getStringExtra("articleUrl");
         articleTitle = intent.getStringExtra("articleTitle");
-        userId = intent.getStringExtra("userid");
-        sesionToken = intent.getStringExtra("token");
 
         webView = (WebView) findViewById(R.id.webview);
         zenView = (WebView) findViewById(R.id.webviewZen);
@@ -218,17 +227,19 @@ public class ArticleView extends ActionBarActivity {
             String articleId = params[0];
 
             try {
-                HttpEntity resEntityGet = new GetZenContent(articleId).getContent();
+                HttpEntity resEntityGet = new GetZenContent(sesionToken, articleId).getContent();
+
                 if (resEntityGet != null) {
                     json = EntityUtils.toString(resEntityGet);
                     JSONObject response = new JSONObject(json);
                     zenArticleContent = response.getJSONObject("link").getString("content");
                 }
             }
-            catch(Exception e)
-            {
+            catch(IOException | JSONException e) {
+                e.printStackTrace();
                 Toast.makeText(ArticleView.this,"Connection error",Toast.LENGTH_SHORT).show();
             }
+
             return "Executed";
         }
 
