@@ -94,6 +94,20 @@ public class ArticleView extends ActionBarActivity {
 
     }
 
+    @Override
+    public void onBackPressed() {
+        if(this.isTaskRoot()) {
+            Intent intent = new Intent(this, FeedView.class);
+            intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+            intent.putExtra("Token", sesionToken);
+            intent.putExtra("id", userId);
+            intent.putExtra("useremail", useremail);
+            startActivity(intent);
+        }
+
+        finish();
+    }
+
     public class MyWebViewClient extends WebViewClient {
 
         @Override
@@ -168,6 +182,15 @@ public class ArticleView extends ActionBarActivity {
     }
 
     public void back_Me(View v) {
+        if(this.isTaskRoot()) {
+            Intent intent = new Intent(this, FeedView.class);
+            intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+            intent.putExtra("Token", sesionToken);
+            intent.putExtra("id", userId);
+            intent.putExtra("useremail", useremail);
+            startActivity(intent);
+        }
+
         finish();
     }
 
