@@ -194,7 +194,7 @@ public class ArticleView extends ActionBarActivity {
         finish();
     }
 
-    public void share_Me(View v) {
+    public void shareArticle(View v) {
         Intent sharingIntent = new Intent(Intent.ACTION_SEND);
         sharingIntent.setType("text/plain");
         sharingIntent.putExtra(android.content.Intent.EXTRA_TEXT, articleTitle + " " + articleUrl);

@@ -17,17 +17,11 @@
         app:contentInsetStart="0dp"
         >
 
-        <LinearLayout
-            android:layout_width="fill_parent"
-            android:layout_height="50dp"
-            android:layout_alignParentTop="true"
-            android:layout_alignParentLeft="true"
-            android:layout_alignParentStart="true"
-            android:layout_marginTop="5dp"
-            android:background="#FFF"
+
+        <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
             android:orientation="horizontal"
-            android:id="@+id/header_layout"
-            android:gravity="center_vertical">
+            android:layout_width="fill_parent"
+            android:layout_height="wrap_content">
 
             <ImageView
                 android:layout_width="wrap_content"
@@ -35,17 +29,14 @@
                 android:id="@+id/returnToFeed"
                 android:src="@drawable/ic_navigate_before_black_48dp"
                 android:onClick="back_Me"
-                android:layout_marginLeft="10dp"
-                android:layout_marginStart="10dp"
-                android:contentDescription="Return to feed"
+                android:layout_alignParentLeft="true"
                 android:tint="#BBB" />
 
             <RadioGroup
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:orientation='horizontal'
-                android:layout_marginLeft="50dp"
-                android:layout_marginStart="50dp">
+                android:layout_centerInParent="true">
 
                 <RadioButton
                     style="@style/switchViewButtonLeft"
@@ -67,9 +58,88 @@
                     android:button="@android:color/transparent"
                     android:layout_marginLeft="-7dp"
                     android:layout_marginStart="-6dp" />
+
             </RadioGroup>
 
-        </LinearLayout>
+            <ImageView
+                android:layout_width="30dp"
+                android:layout_height="30dp"
+                android:id="@+id/shareArticle"
+                android:src="@drawable/ic_share_black_48dp"
+                android:onClick="shareArticle"
+                android:layout_alignParentRight="true"
+                android:layout_centerInParent="true"
+                android:tint="#BBB"
+                android:layout_marginRight="10dp" />
+
+
+        </RelativeLayout>
+
+        <!--<LinearLayout-->
+            <!--android:layout_width="fill_parent"-->
+            <!--android:layout_height="50dp"-->
+            <!--android:layout_alignParentTop="true"-->
+            <!--android:layout_alignParentLeft="true"-->
+            <!--android:layout_alignParentStart="true"-->
+            <!--android:layout_marginTop="5dp"-->
+            <!--android:background="#FFF"-->
+            <!--android:orientation="horizontal"-->
+            <!--android:id="@+id/header_layout"-->
+            <!--android:gravity="center_vertical">-->
+
+            <!--<ImageView-->
+                <!--android:layout_width="wrap_content"-->
+                <!--android:layout_height="wrap_content"-->
+                <!--android:id="@+id/returnToFeed"-->
+                <!--android:src="@drawable/ic_navigate_before_black_48dp"-->
+                <!--android:onClick="back_Me"-->
+                <!--android:layout_marginLeft="10dp"-->
+                <!--android:layout_marginStart="10dp"-->
+                <!--android:contentDescription="Return to feed"-->
+                <!--android:tint="#BBB" />-->
+
+            <!--<RadioGroup-->
+                <!--android:layout_width="wrap_content"-->
+                <!--android:layout_height="wrap_content"-->
+                <!--android:orientation='horizontal'-->
+                <!--android:layout_marginLeft="40dp"-->
+                <!--android:layout_marginStart="40dp">-->
+
+                <!--<RadioButton-->
+                    <!--style="@style/switchViewButtonLeft"-->
+                    <!--android:text="Web"-->
+                    <!--android:id="@+id/web"-->
+                    <!--android:onClick="openWebView"-->
+                    <!--android:background="@drawable/switch_view_button_background"-->
+                    <!--android:textColor="@drawable/switch_view_button_text"-->
+                    <!--android:button="@android:color/transparent"-->
+                    <!--android:checked="true"/>-->
+
+                <!--<RadioButton-->
+                    <!--style="@style/switchViewButtonRight"-->
+                    <!--android:text="Zen"-->
+                    <!--android:id="@+id/zen"-->
+                    <!--android:onClick="openZenView"-->
+                    <!--android:background="@drawable/switch_view_button_background"-->
+                    <!--android:textColor="@drawable/switch_view_button_text"-->
+                    <!--android:button="@android:color/transparent"-->
+                    <!--android:layout_marginLeft="-7dp"-->
+                    <!--android:layout_marginStart="-6dp" />-->
+            <!--</RadioGroup>-->
+
+            <!--<ImageView-->
+                <!--android:layout_width="30dp"-->
+                <!--android:layout_height="30dp"-->
+
+                <!--android:id="@+id/shareArticle"-->
+                <!--android:src="@drawable/ic_share_black_48dp"-->
+                <!--android:onClick="back_Me"-->
+                <!--android:contentDescription="Return to feed"-->
+                <!--android:tint="#BBB"-->
+                <!--android:layout_marginLeft="45dp"-->
+                <!--android:layout_gravity="center_vertical" />-->
+
+        <!--</LinearLayout>-->
 
     </android.support.v7.widget.Toolbar>
 
